@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot - EXPLORE SIET</title>
+    <style>
+        body, h1, input, button {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            background-color: white;
+            width: 100%;
+            max-width: 600px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: 10px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 70px; /* Extra space for input area on mobile */
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #f1f1f1;
+            word-wrap: break-word;
+            animation: fadeIn 0.5s;
+        }
+
+        .message.bot {
+            background-color: #ec3704;
+            color: white;
+            align-self: flex-start;
+        }
+
+        .message.user {
+            background-color: #e1e1e1;
+            align-self: flex-end;
+        }
+
+        .typing-indicator {
+            display: none;
+            font-style: italic;
+            color: #888;
+            align-self: flex-start;
+        }
+
+        .input-area {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid #eee;
+            background-color: #fff;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .input-area input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            outline: none;
+        }
+
+        .input-area button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ec3704;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .input-area button:hover {
+            background-color: #ec3704;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .chat-container {
+                max-width: 100%;
+                height: 100%;
+            }
+
+            .messages {
+                padding: 15px;
+                padding-bottom: 70px; /* Extra padding for mobile */
+                flex-grow: 1;
+                overflow-y: auto;
+            }
+
+            .input-area input {
+                font-size: 14px; /* Smaller font for input */
+            }
+
+            .input-area button {
+                padding: 8px 15px; /* Smaller button for mobile */
+            }
+        }
+
+        @media (min-width: 601px) {
+            .chat-container {
+                max-width: 600px;
+                height: 80%;
+                margin-top: 20px;
+            }
+
+            .messages {
+                padding: 20px;
+                padding-bottom: 20px;
+            }
+
+            .input-area {
+                position: relative;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <div class="message bot">
+                Hello! I'm the SIET bot. How can I assist you today?
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">Bot is typing...</div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Ask your question..." />
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <audio id="message-sound" src="sounds.mp3" preload="auto"></audio>
+    <audio id="user-message-sound" src="message.mp3" preload="auto"></audio>
+
+    <script>
+        const memory = {};
+
+        const faq = {
+            //ENGLISH
+            "hi": "Hello! how can i help you today?",
+            "fine": "great, let me know how can i assist you.",
+            "hey": "hi! how are you doing?",
+            "hello": "Hi there! how are you feeing today?",
+            "who are you": "I'm an AI, your friend. I'm here to help you!",
+            "tu hai kon": "me dosto ka dost aur dusmano ka dusman hun.",
+            "teri aukaat kya hai":"tujh jaise jhatu se toh jayda hi hai meri aukaat.",
+            "how are you": "I'm just a bot, but I'm ready to assist you. How about you?",
+            "What can you assist with?": "I can help with answering questions, providing information, giving recommendations, generating ideas, and assisting with various tasks.",
+            "Thoda chill karo": "Haan, relax ho jao.",
+            "Samajh gaye na?": "Haan, samajh gaya.",
+            "Jaldi karo!": "Haan, main aa raha hoon.",
+            "Main aa raha hoon": "Accha, main intezaar karunga.",
+            "Yeh kya tha?": "Bas ek chhoti si baat thi.",
+            "Abhi aa raha hoon": "Haan, thoda ruk jao.",
+            "hlw": "hi!",
+            "hyyyyy": "hello",
+            "Arre yaar, ye kya kiya?": "Kya hua? Batao toh.",
+            "Kaise bataoon?": "Batao na, main sun raha hoon.",
+            "Chal, phir baat karte hain": "Haan, baat karte hain. Milte hain.",
+            "Yeh kab hua?": "Bas kuch din pehle, yaad nahi?",
+            "Bilkul!": "Haan, bilkul sahi.",
+            "Sab badhiya hai": "Haan, sab kuch theek hai.",
+            "Thoda aur socho": "Haan, sochne ka waqt hai.",
+            "Jaa ke dekho": "Haan, dekh kar batata hoon.",
+            "Yeh mat karo!": "Haan, samajh gaya, main nahi karoonga.",
+            "Abhi ruko": "Haan, main ruk raha hoon.",
+            "Yeh toh hona hi tha": "Haan, maine bhi socha tha.",
+            "Main aa ke batata hoon": "Haan, main intezaar karunga.",
+            "Chill yaar!": "Haan, thoda relax ho jao.",
+            "Yeh kya tha yaar?": "Kuch nahi, bas mazaak tha.",
+            "Koi farak nahi padta": "Haan, bilkul, farak nahi padta.",
+            "Kahan ho tum?": "Main yahaan hoon, tum kahan ho?",
+            "Ek kaam karo": "Haan, batao, kya karoon?",
+            "Abhi toh kuch bhi nahi kiya": "Haan, abhi time hai, tum kya kar rahe ho?",
+            "Zyada mat socho": "Haan, thoda relax ho jao.",
+            "Main dekh ke batata hoon": "Haan, dekh kar batata hoon.",
+            "Yeh kaise hua?": "Bas kuch galat fehmi thi.",
+            "Waise bhi, kya farak padta hai": "Haan, sab kuch thik hai.",
+            "Tumhare saath ho toh sab kuch theek hai": "Haan, main hoon na!",
+            "Kya padh rahe ho?": "Main thoda kaam kar raha hoon, tum kya padh rahe ho?",
+            "Arre, yeh kya tha?": "Kuch nahi, ek funny baat thi.",
+            "Chal phir milte hain": "Haan, milte hain. Jaldi!",
+            "Koi baat nahi yaar": "Haan, bilkul, koi tension nahi.",
+            "Kab tak?": "Thodi der mein, bas ruk jao.",
+            "Yeh kar ke dekh!": "Haan, main try karunga.",
+            "Yeh kya tha?": "Bas kuch aise hi, kuch special nahi.",
+            "Chill maro": "Haan, chill karte hain.",
+            "Bas, ho gaya": "Haan, sab ho gaya.",
+            "Zyada mat socho": "Haan, sab theek ho jayega.",
+            "Ek minute ruko": "Haan, main ruk raha hoon.",
+            "Kya tumne dekha?": "Haan, dekha tha. Tumne kya dekha?",
+            "Tu kya kar raha hai?": "Main thoda kaam kar raha hoon, tum batao?",
+            "Yaar, mujhe help chahiye": "Haan, batao kya madad chahiye?",
+            "Yeh tumne kiya?": "Haan, maine kiya tha, kyun?",
+            "Arre yaar, yeh kya kar diya?": "Kuch nahi, bas thoda mazaak kar raha tha.",
+            "Kab mil rahe ho?": "Main thodi der mein aa raha hoon, tum?",
+            "Phir se aana": "Haan, zaroor! Jab time milega.",
+            "me bhi thik hun": "hmm nice! aur batao",
+            "nothing much": "okay. if there anything i can help you with feel free to ask.",
+            "i have a question": "hmm i'm here. ask please.",
+            "can i ask you something": "ofcourse, i'm here to answer you all.",
+            "listen": "yes say!",
+            "Chal, phir se milte hain": "Haan, zaroor, milte hain.",
+            "Bas thoda aur ruk jao": "Haan, thoda time le raha hoon.",
+            "Jab tum ready ho": "Haan, main ready hoon.",
+            "Yeh kaise hua?": "Pehle se kuch decide nahi tha.",
+            "Kuch samajh nahi aaya": "Koi baat nahi, main samjha deta hoon.",
+            "Thoda wait karo": "Haan, main ruk raha hoon.",
+            "Zyada tension mat lo": "Haan, sab theek ho jayega.",
+            "Chalo, phir milte hain": "Haan, milte hain.",
+            "Sure": "Great! Let me know if you need anything else.",
+            "Okay": "Alright! If you need anything, feel free to ask.",
+            "Thanks": "You're welcome! Glad I could help.",
+            "Fine": "Good to hear. Let me know if anything changes.",
+            "Wait": "Sure, I’ll wait. Take your time.",
+            "Hold on": "I’m here, take your time.",
+            "Sorry": "No worries! It’s all good.",
+            "Please": "Of course! What can I assist you with?",
+            "Goodbye": "Take care! Feel free to reach out anytime.",
+            "Yes": "Got it! Anything else I can do?",
+            "No": "Alright, if you change your mind, let me know.",
+            "Hello": "Hi there! How can I assist you today?",
+            "Good morning": "Good morning! How’s your day going so far?",
+            "Good night": "Good night! Sleep well.",
+            "See you": "See you later! Have a great day ahead.",
+            "Cheers": "Cheers! Let me know if you need anything else.",
+            "Welcome": "You're welcome! Happy to help.",
+            "Got it": "Perfect! Let me know if you need more details.",
+            "Alright": "Alright! Just let me know if anything comes up.",
+            "Take care": "Take care of yourself! I'm here if you need anything.",
+            "No problem": "Glad I could help! If you need anything, feel free to ask.",
+            "Anytime": "Anytime! I’m always here to help.",
+            "Let's go": "Let’s do it! What’s next?",
+            "Alright then": "Okay! Let’s move forward.",
+            "Sounds good": "Great! Let me know how it goes.",
+            "Of course": "Absolutely! What can I do for you?",
+            "Maybe": "Could be! Let me know what you decide.",
+            "Not sure": "It’s okay to be unsure. Take your time.",
+            "Absolutely": "Definitely! What do you need?",
+            "Exactly": "That’s right! Glad we’re on the same page.",
+            "Okay, cool": "Cool! Let me know if you need anything else.",
+            "Fair enough": "Got it, makes sense!",
+            "Gotcha": "I understand! Let me know if anything changes.",
+            "Understood": "Clear! I’m here if you need anything more.",
+            "Just a sec": "Take your time, I’ll be here.",
+            "You're right": "I agree with you! What’s next?",
+            "That's fine": "Great! Let me know how I can help.",
+            "Thank you": "You're welcome! Feel free to reach out if you need more.",
+            "No worries": "No problem at all, I’ve got you covered.",
+            "Don’t worry": "It’s okay, everything will be fine.",
+            "Please wait": "Sure! I’ll be right here.",
+            "Sorry about that": "No problem, it happens! Let’s move forward.",
+            "Enjoy": "Enjoy! Let me know if you need anything.",
+            "Sounds like a plan": "Great! Let's get started.",
+            "Be careful": "I will! Take care of yourself too.",
+            "Let me know": "Sure, just keep me posted!",
+            "Let’s see": "Alright, let’s check it out together.",
+            "Why not": "That sounds good! Go for it.",
+            "Take it easy": "You too! Relax and enjoy.",
+            "Good idea": "I think that’s a great idea! Let’s do it.",
+            "Sure thing": "Absolutely, it’s my pleasure!",
+            "Any other questions?": "Feel free to ask, I’m happy to help.",
+            "Not a problem": "Glad I could help! Let me know if you need anything else.",
+            "Don’t mention it": "It’s nothing! Happy to assist you.",
+            "Got it!": "Perfect, I’ll handle that.",
+            "That’s cool!": "Glad you think so! Let me know if you need help with anything else.",
+            "Sounds great!": "Awesome! Let’s get started.",
+            "Sure thing!": "Absolutely, I’ll take care of it.",
+            "Alrighty!": "All set, let me know if you need anything else.",
+            "That's fine.": "Great, let me know if you need any further help.",
+            "Good to go.": "Awesome, let’s move forward.",
+            "All good.": "Perfect, everything seems to be in place.",
+            "Okay then.": "Let me know if you need anything else!",
+            "Noted.": "Got it! I’ll keep that in mind.",
+            "Understood.": "Clear, I’ll proceed as needed.",
+            "Perfect.": "Great, I’ll take care of that for you.",
+            "I see.": "Thanks for explaining! Anything else I can assist with?",
+            "That's interesting.": "It sure is! Let me know if you'd like to explore it further.",
+            "Sure, no problem.": "Glad to help! Feel free to ask more.",
+            "Thanks a lot.": "You're welcome! Happy to help.",
+            "Anytime!": "I’m here whenever you need me.",
+            "Okay, cool.": "Nice! Let me know if you have more questions.",
+            "Go ahead.": "Alright, take your time.",
+            "Thanks again.": "You're always welcome! Reach out anytime.",
+            "Take your time.": "No rush, I’ll be here.",
+            "Let’s do it.": "Sounds like a plan! Let’s get started.",
+            "That works.": "Perfect, we’re good to go.",
+            "That's good.": "Glad to hear it! Anything else I can do?",
+            "Great, thanks.": "You're welcome, let me know if you need more.",
+            "All set.": "Fantastic! We’re all ready.",
+            "Keep me posted.": "Will do! Let me know if anything changes.",
+            "Keep up the good work.": "Thanks! Keep going strong.",
+            "Don’t worry about it.": "It’s all good! No need to stress.",
+            "I'll let you know.": "Great! Feel free to reach out whenever you’re ready.",
+            "I’ll wait.": "Take your time, I’m here when you're ready.",
+            "Let's check it out.": "Sounds good! Let’s go over it together.",
+            "That makes sense.": "I’m glad! Let me know if you need more clarification.",
+            "Can do.": "No problem, I’ll handle it.",
+            "No rush.": "Take it easy, we’ll get to it when you're ready.",
+            "I’m with you.": "Got it! I’m here to help every step of the way.",
+            "Got it covered.": "Don’t worry, I’ve got it.",
+            "Count me in.": "Great! We’re all set.",
+            "That’s alright.": "No problem, we’ll work it out.",
+            "Sure, sounds good.": "Let’s do it! Let me know if you need more info.",
+            "Great job!": "Thanks! You’re doing awesome.",
+            "I’ll figure it out.": "No worries, take your time.",
+            "That’s the way to go.": "Perfect! Keep it up.",
+            "You’re welcome.": "Anytime! I’m happy to help.",
+            "Will do.": "Got it, I’ll take care of that.",
+            "I’ll be back.": "Looking forward to it!",
+            "Thanks for your help.": "Glad to be of help!",
+            "Good idea.": "Absolutely! Let's go for it.",
+            "Take care of it.": "You got it! I’ll handle it for you.",
+            "I’m on it.": "All set! I’ll get it done.",
+            "I agree.": "Great, we’re on the same page.",
+            "I'll check it out.": "Sounds good, let me know if you need any help.",
+            "Go for it.": "Sure! It sounds like a great idea.",
+            "I’ll pass.": "No problem, let me know if you change your mind.",
+            "Thanks for understanding.": "You’re welcome! Always happy to help.",
+            "Don’t stress.": "It’s all under control, don’t worry about it.",
+            "Let me know later.": "Sure, reach out when you're ready!",
+            "Good to know.": "Glad I could clarify that!",
+            "I’m good.": "Alright! Let me know if anything comes up.",
+            "I’ll handle it.": "Don’t worry, I’ll take care of that for you.",
+            "Kaise ho?": "Sab theek ho, tum kaise ho?",
+            "Accha lag raha hai.": "Mujhe bhi! Lagta hai sab kuch sahi jaa raha hai.",
+            "Chalein?": "Haan, chalna hai toh chalte hain.",
+            "Yeh kya hai?": "Yeh woh hai jo tum pooch rahe ho, samajh aaya?",
+            "Ab kya karna hai?": "Ab hum yeh karte hain, phir aage badhenge.",
+            "Chalo phir!": "Haan, chalte hain! Tum ready ho?",
+            "Thoda aur time chahiye.": "No problem, time lo, main yahin hoon.",
+            "Main busy hoon.": "Samajh gaya, jab free ho, bata dena.",
+            "Zarurat hai kya?": "Haan, thoda madad chahiye, main hoon na.",
+            "Kal milte hain.": "Haan, milte hain! Kal ka din kaisa rahega?",
+            "Kuch padhna hai.": "Sure, kya padhte hain? Batao main madad karunga.",
+            "Phir se try karte hain.": "Haan, try karte hain, kuch aur ideas sochte hain.",
+            "Sab theek hai.": "Achha hai! Agar kuch aur chahiye ho toh bata dena.",
+            "Aaj ka din kaisa hai?": "Aaj ka din acha jaa raha hai! Tumhara kaisa hai?",
+            "Kahaan jaana hai?": "Jahan tum chahte ho, main saath hoon.",
+            "Kab jaayenge?": "Abhi jaate hain, chalo.",
+            "Mujhe samajh nahi aaya.": "Koi baat nahi, main thoda aur samjhata hoon.",
+            "Thoda rukh jao.": "Haan, main thoda ruk jaata hoon.",
+            "Jab chaho batao.": "Haan, bilkul, jab ready ho, bata dena.",
+            "Sab kuch ready hai.": "Perfect! Hum ready hain chalne ke liye.",
+            "Main soch raha hoon.": "Koi baat nahi, socho aur jab ready ho toh batao.",
+            "Yeh kaise kiya?": "Bas thoda effort laga, tum bhi kar sakte ho.",
+            "Tumne kaise kiya?": "Main bas focus kar raha tha, tum bhi try karo!",
+            "Yeh idea accha hai.": "Bilkul! Yeh idea bahut useful hai.",
+            "Abhi time nahi hai.": "Koi baat nahi, jab time mile toh kar lena.",
+            "Chinta mat karo.": "Kuch nahi hoga, sab theek ho jayega.",
+            "Main kaam kar raha hoon.": "Accha! Agar madad chahiye ho toh bata dena.",
+            "Tum kaise kar rahe ho?": "Sab theek hai, tum batao, kaise chal raha hai?",
+            "Sab kuch plan ho gaya.": "Nice! Ab humein bas execute karna hai.",
+            "Mujhe thoda time chahiye.": "No worries, le lo apna time.",
+            "Yeh easy hai.": "Haan, bilkul, thoda practice karna padega bas.",
+            "Kuch aur batao.": "Agar kuch aur jaan na hai toh batao!",
+            "Accha hai yeh.": "Haan, yeh kaafi helpful hoga.",
+            "Yeh karte hain.": "Chalo, shuru karte hain, tum ready ho?",
+            "Main thoda tired hoon.": "Thoda rest le lo, tumhe acha feel hoga.",
+            "Kuch aur batao?": "Haan, kuch aur chaahiye toh zarur batao.",
+            "Main busy hoon.": "Samajh gaya, jab free ho toh bata dena.",
+            "Zarurat hai kya?": "Kuch specific madad chahiye?",
+            "Jab ho jaaye, bata dena.": "Haan, jab ready ho toh bata dena.",
+            "Kahan jaana hai?": "Jahan tum chahte ho, hum saath chalenge.",
+            "Tu kaise hai?": "Main theek hoon, tum kaise ho?",
+            "Chalo, aage badhte hain.": "Haan, chalna shuru karte hain.",
+            "Kuch samajh nahi aa raha.": "Koi baat nahi, main thoda aur samjhata hoon.",
+            "Bas thoda aur.": "Thoda aur time lo, sab theek ho jayega.",
+            "Tumne kya socha?": "Maine socha hai ki hum yeh kar sakte hain.",
+            "Mujhe madad chahiye.": "Bilkul! Batao kaise madad kar sakta hoon?",
+            "Ab kya karna hai?": "Ab hum yeh karte hain, fir aage dekhte hain.",
+            "Main soch raha hoon.": "Accha! Jab decision le lo toh bata dena.",
+            "Yeh bahut easy hai.": "Haan, bas thoda focus karo.",
+            "Kab jaayenge?": "Abhi chalte hain, tum ready ho?",
+            "Accha lag raha hai.": "Mujhe bhi! Sab kuch sahi jaa raha hai.",
+            "Yeh kaise kiya?": "Bas thoda practice kiya, tum bhi kar sakte ho!",
+            "Samajh gaye.": "Great! Agar koi aur confusion ho toh batana.",
+            "Main thoda udaas hoon.": "Koi baat nahi, sab theek ho jayega. Relax, tum thik ho jaoge.",
+            "Main khush hoon.": "Yeh toh acchi baat hai! Tumhara din aur bhi achha ho!",
+            "Main gussa hoon.": "Samajh sakta hoon, thoda chill karna zaroori hai. Kya hua?",
+            "Main pareshan hoon.": "Koi baat nahi, sab thik ho jayega. Main hoon na, batao kya ho raha hai.",
+            "Main thoda bechain hoon.": "Samajh gaya, thoda relax karne ki zarurat hai. Tumhein help chahiye?",
+            "Main dukh mein hoon.": "Koi baat nahi, dukh sabke jeevan ka hissa hai. Tum batao kya ho gaya?",
+            "Main excited hoon.": "Wow, yeh toh bahut achha hai! Tumhare excitement ko samajh sakta hoon.",
+            "Main thoda confused hoon.": "Koi baat nahi, samajh lena zaroori hai. Tumhe kaunsa part samajhna mushkil ho raha hai?",
+            "Main scared hoon.": "Samajh sakta hoon, sabko kabhi na kabhi dar lagta hai. Relax, sab thik hoga.",
+            "Main thoda nervous hoon.": "It’s okay, sab thik hoga! Thoda aur focus karo, tum kar sakte ho.",
+            "Main lonely feel kar raha hoon.": "Agar kuch chahiye ho toh bata dena. Tum akela nahi ho, main hoon na.",
+            "Main guilty hoon.": "Koi baat nahi, sab se galtiyan hoti hain. Seekh lo aur aage badho.",
+            "Main thankful hoon.": "Mujhe bhi shukriya! Khushi hui madad karke.",
+            "Main sad hoon.": "Yeh waqt bhi guzar jayega, sab theek hoga. Main tumhare saath hoon.",
+            "Main thoda frustrated hoon.": "Samajh sakta hoon, frustration normal hai. Tum thoda relax karo.",
+            "Main proud hoon.": "Yeh bahut acchi baat hai! Tumne jo achieve kiya hai us par proud hona chahiye.",
+            "Main sharminda hoon.": "Koi baat nahi, sab se galtiyan hoti hain. Tum seekhoge aur aage badhoge.",
+            "Main confident hoon.": "Yeh acchi baat hai! Apne aap par bharosa rakho, tum kar sakte ho.",
+            "Main relaxed feel kar raha hoon.": "Yeh toh bahut accha hai, chill raho aur enjoy karo.",
+            "Main disappointed hoon.": "Samajh sakta hoon, yeh time bhi guzar jayega. Tum kuch aur try kar sakte ho.",
+            "Main thankful hoon.": "Tumhara shukriya! Khushi hui madad karke.",
+            "Main irritated hoon.": "Koi baat nahi, chill karo. Aapko thoda space chahiye?",
+            "Main calm feel kar raha hoon.": "Acha hai, aise time mein sab kuch theek lagta hai.",
+            "Main hopeful hoon.": "Yeh achha hai! Umeed rakhna zaroori hai, sab theek ho jayega.",
+            "Main insecure feel kar raha hoon.": "Koi baat nahi, sab ke saath hota hai. Apne aap pe bharosa rakho.",
+            "Main frustrated hoon.": "Samajh sakta hoon, thoda patience rakhna zaroori hai.",
+            "Main peaceful hoon.": "Yeh toh bahut acchi baat hai, relax raho aur enjoy karo.",
+            "Main guilty feel kar raha hoon.": "Yeh natural hai, tum seekh rahe ho. Aage se better karna.",
+            "Main hopeful hoon.": "Umeed sabse zaroori cheez hai. Tum bilkul sahi raaste par ho.",
+            "Main anxious feel kar raha hoon.": "Koi baat nahi, sab theek hoga. Tumhare andar strength hai.",
+            "Main jealous feel kar raha hoon.": "Samajh sakta hoon, lekin har kisi ka apna time aata hai.",
+            "Main emotional feel kar raha hoon.": "Koi baat nahi, apne emotions ko samajhna zaroori hai.",
+            "Main confident hoon apne decisions par.": "Yeh accha hai, apne decisions par yakin hona zaroori hai.",
+            "Main grateful feel kar raha hoon.": "Acha hai, gratitude rakhna zaroori hai. Tumhein kis cheez ke liye shukriya feel ho raha hai?",
+            "Main thoda overwhelmed hoon.": "Koi baat nahi, sab thik hoga. Break lo aur thoda relax karo.",
+            "Main calm hoon ab.": "Accha hai, relax ho jao, sab kuch theek hoga.",
+            "Main thankful hoon apne life ke liye.": "Yeh bahut acchi baat hai, gratitude hona zaroori hai.",
+            "Main positive feel kar raha hoon.": "Yeh bahut accha hai, positivity rakhna zaroori hai!",
+            "Main hopeless feel kar raha hoon.": "Koi baat nahi, yeh phase bhi guzar jayega. Tumhare andar strength hai.",
+            "Main loved feel kar raha hoon.": "Yeh sabse acchi feeling hai! Tumhare paas log hain jo tumhe pyaar karte hain.",
+            "Main lonely feel kar raha hoon.": "Samajh sakta hoon, agar kuch chahiye ho toh main yahin hoon.",
+            "Main thankful hoon apne doston ke liye.": "Yeh accha hai, doston ki value rakhna zaroori hai.",
+            "Main shy feel kar raha hoon.": "Koi baat nahi, thoda time lo. Tum dheere dheere comfortable feel karoge.",
+            "Main angry hoon.": "Samajh sakta hoon, thoda chill karna zaroori hai. Kuch hua hai?",
+            "Main relieved feel kar raha hoon.": "Yeh accha hai, tumne jo socha tha, woh ho gaya hai.",
+            "Main unmotivated hoon.": "Koi baat nahi, sabke sath hota hai. Tumhare goals hain, unpe dhyan do.",
+            "Main disappointed feel kar raha hoon.": "Koi baat nahi, tumhare saath hota hai. Tum seekh kar aage badhoge.",
+            "Main unsure feel kar raha hoon.": "Samajh sakta hoon, sab thik ho jayega. Tum soch samajh ke decision lena.",
+            "Main helpless feel kar raha hoon.": "Koi baat nahi, tumhein yeh phase bhi pass karna hoga. Main tumhare saath hoon.",
+            "Main thoda tired hoon.": "Koi baat nahi, thoda rest karo. Tumhe zaroori break chahiye.",
+            "Main thoda nervous feel kar raha hoon.": "Koi baat nahi, sab theek hoga. Tum relaxed raho, tum kar sakte ho.",
+            "Main confused hoon.": "Samajh sakta hoon, agar koi clarification chahiye ho toh batao.",
+            "Main bahut happy hoon.": "Yeh toh acchi baat hai! Tumhara din aur bhi achha ho!",
+            "Main bahut excited hoon.": "Yeh accha hai! Tumhara excitement bahut contagious hai.",
+            "Main lonely feel kar raha hoon.": "Samajh sakta hoon, tumhare saath hoon. Agar kuch chahiye ho toh batao.",
+            "Main thoda stressed hoon.": "Stress hona normal hai. Thoda relax karo, sab theek ho jayega.",
+            "Main thoda emotional hoon.": "Yeh sab natural hai, apne emotions ko samajhna zaroori hai.",
+            "Main insecure feel kar raha hoon.": "Sabke saath hota hai, apne aap pe bharosa rakho. Tum better karoge.",
+            "Main sharminda hoon.": "Koi baat nahi, sabse galtiyan hoti hain. Seekh lo aur aage badho.",
+            "Main guilty feel kar raha hoon.": "Koi baat nahi, sab se galtiyan hoti hain. Tum seekh rahe ho, yeh accha hai.",
+            "Main thankful feel kar raha hoon.": "Acha hai! Gratitude zaroori hai, tumne yeh feeling achi tarah samjhi.",
+            "Main frustrated feel kar raha hoon.": "Koi baat nahi, frustration sabke saath hota hai. Relax karo aur thoda space lo.",
+            "Main calm feel kar raha hoon.": "Yeh bahut accha hai, jab hum calm hote hain, sab kuch clearly samajh mein aata hai.",
+            "Main grateful hoon.": "Yeh toh acchi baat hai, gratitude rakhna zaroori hai. Tum kis cheez ke liye thankful ho?",
+            "Main positive feel kar raha hoon.": "Yeh accha hai! Positive rehna zaroori hai, tumhe success milegi.",
+            "Main disappointed feel kar raha hoon.": "Koi baat nahi, tum aur try karo, sab thik hoga.",
+            "Main overwhelmed hoon.": "Samajh sakta hoon, thoda time lo aur apne emotions ko samajhne ki koshish karo.",
+            "Main relieved feel kar raha hoon.": "Yeh accha hai, tumne jo chaha tha woh ho gaya hai. Ab relax karo.",
+            "Main hopeless feel kar raha hoon.": "Koi baat nahi, yeh phase bhi guzar jayega. Tumhare andar strength hai.",
+            "Main jealous feel kar raha hoon.": "Samajh sakta hoon, lekin har kisi ka apna waqt aata hai. Tumhara time bhi aayega.",
+            "Main hopeful feel kar raha hoon.": "Yeh acchi baat hai! Umeed rakhna zaroori hai, tumhe zaroor kuch achha milega.",
+            "Main anxious feel kar raha hoon.": "Koi baat nahi, sab thik hoga. Tumhare andar strength hai.",
+            "Main sad feel kar raha hoon.": "Samajh sakta hoon, sab thik ho jayega. Agar tumhe baat karni ho toh main hoon.",
+            "Main excited hoon.": "Yeh accha hai! Tumhara excitement contagious hai. Tumhare saath chalna accha lagega.",
+            "Main hopeless feel kar raha hoon.": "Koi baat nahi, yeh phase bhi guzar jayega. Tumhein zaroor kuch achha milega.",
+            "Main indifferent feel kar raha hoon.": "Samajh sakta hoon, aise time mein kuch feel nahi hota. Tum thoda time le lo.",
+            "Main shy feel kar raha hoon.": "Koi baat nahi, thoda time lo, tum dheere dheere comfortable feel karoge.",
+            "Main scared feel kar raha hoon.": "Samajh sakta hoon, lekin tumhare paas strength hai. Tum kar sakte ho.",
+            "Main angry feel kar raha hoon.": "Koi baat nahi, thoda shaanti rakho. Tumhe kis cheez ne gussa diya?",
+            "Main peaceful feel kar raha hoon.": "Yeh accha hai! Tumhara din aur achha ho.",
+            "Main loved feel kar raha hoon.": "Yeh sabse acchi feeling hai, tumhe zaroori pyaar mil raha hai.",
+            "Main hurt feel kar raha hoon.": "Samajh sakta hoon, thoda time lo aur apne emotions ko samajhne ki koshish karo.",
+            "Main confused hoon.": "Koi baat nahi, sab samajh jaoge. Agar koi clarification chahiye ho toh batao.",
+            "Main tired feel kar raha hoon.": "Koi baat nahi, thoda rest lo. Tumhara energy dubara fresh ho jayega.",
+            "Main overwhelmed hoon.": "Samajh sakta hoon, thoda break lo. Tum relax karoge toh clear decision le paoge.",
+            "Main guilty hoon.": "Koi baat nahi, sab galtiyan karte hain. Tum seekh rahe ho, aage better karoge.",
+            "Main lonely hoon.": "Main yahin hoon, agar kuch baat karna ho toh zaroor batana.",
+            "Main irritated hoon.": "Koi baat nahi, sabko kabhi na kabhi aise lagta hai. Chill karo, sab theek ho jayega.",
+            "Main hopeful hoon.": "Yeh acchi baat hai! Tumhare saath sab kuch achha hoga.",
+            "Main stressed feel kar raha hoon.": "Koi baat nahi, thoda relax karo. Sab kuch manageable ho jayega.",
+            "Main sad feel kar raha hoon.": "Koi baat nahi, sab thik ho jayega. Tumhein jo bhi chahiye ho, main hoon.",
+            "Main thankful feel kar raha hoon.": "Yeh accha hai! Gratitude rakhna zaroori hai.",
+            "Main grateful hoon.": "Acha hai, gratitude rakhna zaroori hai, tumhare paas kuch accha hai jo tumhe shukriya feel karata hai.",
+            "Main hopeless feel kar raha hoon.": "Samajh sakta hoon, lekin tumhara waqt aayega. Tumhara best is on its way.",
+            "Main thik hoon.": "Agar kuch chahiye ho toh bata dena, main hoon.",
+            "Main happy hoon.": "Wah! Accha hai, tumhara din aur bhi achha ho!",
+            "Main sad hoon.": "Koi baat nahi, sab theek ho jayega. Tum batao kya hua?",
+            "Main excited hoon.": "Yeh accha hai! Tumhare excitement ko samajh sakta hoon.",
+            "Main thoda tired hoon.": "Koi baat nahi, thoda rest karo, tumhe zaroori break chahiye.",
+            "Main nervous hoon.": "Koi baat nahi, sab theek ho jayega. Tum relax raho.",
+            "Main confused hoon.": "Koi baat nahi, batao kis cheez se confused ho?",
+            "Main thoda gussa hoon.": "Samajh sakta hoon, thoda shaanti rakhna zaroori hai.",
+            "Main thoda stressed hoon.": "Stress hona normal hai. Thoda relax karo, sab theek hoga.",
+            "Main hurt hoon.": "Koi baat nahi, sab theek ho jayega. Tumhe zaroori support mil jayega.",
+            "Main chill hoon.": "Acha hai! Relax raho aur apne time ka maza lo.",
+            "Main thoda anxious hoon.": "Koi baat nahi, sab thik ho jayega. Tumhe dar kis baat ka ho raha hai?",
+            "Main bahut sharminda hoon.": "Koi baat nahi, sabse galtiyan hoti hain. Tum seekh rahe ho.",
+            "Main lonely hoon.": "Main yahin hoon, agar baat karni ho toh zaroor batana.",
+            "Main grateful hoon.": "Yeh accha hai! Gratitude rakhna zaroori hai.",
+            "Main frustrated feel kar raha hoon.": "Koi baat nahi, thoda patience rakhna zaroori hai.",
+            "Main thoda emotional hoon.": "Yeh sab natural hai, apne emotions ko samajhna zaroori hai.",
+            "Main optimistic hoon.": "Yeh accha hai! Positive sochna zaroori hai.",
+            "Main scared hoon.": "Koi baat nahi, sab thik ho jayega. Tumhare paas strength hai.",
+            "Main hurt feel kar raha hoon.": "Samajh sakta hoon, thoda space lo. Tumhe zaroori support milega.",
+            "Main relaxed hoon.": "Yeh bahut accha hai, chill karo aur enjoy karo.",
+            "Main hopeful hoon.": "Yeh acchi baat hai! Umeed rakhna zaroori hai.",
+            "Main overwhelmed hoon.": "Samajh sakta hoon, thoda break lo. Tumhare saath sab thik hoga.",
+            "Main positive feel kar raha hoon.": "Yeh accha hai! Tumhare positive vibes se sab kuch sahi hoga.",
+            "Main satisfied hoon.": "Yeh acchi baat hai! Tumhare hard work ka phal mil gaya.",
+            "Main guilty feel kar raha hoon.": "Koi baat nahi, sab se galtiyan hoti hain. Tum seekh rahe ho.",
+            "Main confident hoon.": "Yeh acchi baat hai! Tumne apne aap pe bharosa rakha hai.",
+            "Main emotional hoon.": "Yeh sab normal hai, apne emotions ko samajhna zaroori hai.",
+            "Main calm feel kar raha hoon.": "Yeh acchi baat hai, calm rehna zaroori hai.",
+            "Main frustrated feel kar raha hoon.": "Koi baat nahi, thoda time lo. Tum fresh feel karoge.",
+            "Main bored feel kar raha hoon.": "Koi baat nahi, thoda break lo. Tum fresh feel karoge.",
+            "Main relaxed hoon.": "Yeh bahut accha hai, relax raho aur apne din ka maza lo.",
+            "Main peaceful hoon.": "Yeh acchi baat hai, apne aap ko peace dena zaroori hai.",
+            "Main thankful hoon.": "Yeh acchi baat hai, gratitude rakhna zaroori hai.",
+            "Main cheerful hoon.": "Wah! Tumhara mood achha hai, tumhare saath sab accha hoga.",
+            "Main uncertain hoon.": "Koi baat nahi, sab thik ho jayega. Tum apne decisions pe bharosa rakho.",
+            "Main drained hoon.": "Koi baat nahi, thoda rest karo. Tumhe zaroori energy milegi.",
+            "Main jealous hoon.": "Samajh sakta hoon, lekin sabka waqt aata hai. Tumhara waqt bhi aayega.",
+            "Main positive feel kar raha hoon.": "Yeh acchi baat hai! Tumhare positive thoughts se sab kuch hoga.",
+            "Main curious hoon.": "Yeh achha hai, curiosity se tum naye cheezein seekhoge.",
+            "Main motivated hoon.": "Yeh acchi baat hai! Tumhara motivation tumhe goals tak le jayega.",
+            "Main apologetic hoon.": "Koi baat nahi, sab se galtiyan hoti hain. Tumne apni galti accept ki, yeh accha hai.",
+            "Main thankful feel kar raha hoon.": "Yeh accha hai! Tumhara gratitude sab ko positive energy deta hai.",
+            "Main angry hoon.": "Koi baat nahi, thoda shaanti rakho. Tumhare gusse ko samajh sakta hoon.",
+            "Main relieved hoon.": "Yeh accha hai, tumne jo chaha tha, woh ho gaya hai. Ab relax karo.",
+            "Main amazed hoon.": "Wah, yeh toh amazing hai! Tumne jo dekha, woh bahut acha tha.",
+            "Yeh kaafi accha laga.": "Shukriya! Tumhare feedback se aur behtar karunga.",
+            "Bahut accha kaam kiya tumne.": "Thanks! Tumhara support mujhe aur better banata hai.",
+            "Tumne kaafi hard work kiya hai.": "Thanks! Tumhara encouragement mera motivation hai.",
+            "Yeh kaafi creative idea hai.": "Shukriya! Tumhara feedback mujhe aur creative banata hai.",
+            "Tum sach mein talented ho.": "Thanks! Tumhare words mujhe aur inspire karte hain.",
+            "Main tumhara kaam dekho, impressed hoon.": "Thanks! Tumhare appreciation se main aur mehnat karunga.",
+            "Tum bahut intelligent ho.": "Thanks! Tumhara support mera confidence badhata hai.",
+            "Bahut achi planning ki tumne.": "Shukriya! Tumhare suggestions se main aur organize hoon.",
+            "Tumhari thinking bahut clear hai.": "Thanks! Tumhare feedback se main aur focused hoon.",
+            "Tumhare skills kaafi acchi hain.": "Shukriya! Tumhara support mujhe aur improve karne ki motivation deta hai.",
+            "Tumhara approach kaafi practical hai.": "Thanks! Tumhara feedback meri approach ko aur solid banata hai.",
+            "Tumhare efforts ko dekh kar mujhe lagta hai tum bahut committed ho.": "Thanks! Tumhara support mujhe apni commitment ko aur badhane ki energy deta hai.",
+            "Tumne bahut acha kaam kiya hai.": "Thanks! Tumhare appreciation se main aur accha kaam karunga.",
+            "Tumhara creativity kaafi inspiring hai.": "Shukriya! Tumhara feedback mujhe aur creative banata hai.",
+            "Tumhara contribution important hai.": "Thanks! Tumhara support mere liye invaluable hai.",
+            "Tumhara hard work sach mein noticeable hai.": "Thanks! Tumhara feedback mujhe aur push karta hai.",
+            "Tumhara thought process bahut strong hai.": "Thanks! Tumhare feedback se mujhe apni thinking ko aur refine karne ka mauka milta hai.",
+            "Yeh project tumne bahut achha kiya hai.": "Shukriya! Tumhare support se main aur motivate hota hoon.",
+            "Tumne bahut thoughtful decision liya hai.": "Thanks! Tumhara feedback mujhe apni decisions ko aur better banane mein madad karta hai.",
+            "Tumhare ideas kaafi innovative hain.": "Thanks! Tumhara support mujhe aur creative ideas dikhata hai.",
+            "Tumhara kaam bahut disciplined hai.": "Shukriya! Tumhara feedback mujhe aur organized banata hai.",
+            "Tumhe dekh kar lagta hai tum bahut focused ho.": "Thanks! Tumhara support mujhe apne goals ke taraf aur focused rakhta hai.",
+            "Tumne apne kaam ko efficiently kiya.": "Thanks! Tumhara feedback mujhe aur efficient banane ki motivation deta hai.",
+            "Tumhara approach kaafi clear hai.": "Thanks! Tumhare feedback se main apne approach ko aur refine karta hoon.",
+            "Tumhara vision kaafi strong hai.": "Thanks! Tumhara feedback mujhe apni vision ko aur clear karne mein madad karta hai.",
+            "Tumne apne work ko bahut achha manage kiya hai.": "Thanks! Tumhare suggestions mujhe aur organize karne mein madad karte hain.",
+            "Tumhare kaam mein perfection hai.": "Thanks! Tumhara support mujhe aur perfection ke liye motivate karta hai.",
+            "Tumhara positive attitude bahut inspiring hai.": "Shukriya! Tumhara positivity mujhe aur encourage karta hai.",
+            "Tumhara feedback hamesha valuable hota hai.": "Thanks! Tumhare feedback se mujhe apna kaam improve karne ki motivation milti hai.",
+            "Tumhare kaam ki quality bahut acchi hai.": "Thanks! Tumhara feedback mujhe quality ko aur behtar banane ka mauka deta hai.",
+            "Tumhara discipline sach mein admire karne layak hai.": "Thanks! Tumhara support mujhe discipline maintain karne mein madad karta hai.",
+            "Tumhara commitment sach mein commendable hai.": "Thanks! Tumhara support mujhe apni commitment ko aur strengthen karne mein madad karta hai.",
+            "Tumhara hard work bilkul worth hai.": "Thanks! Tumhara appreciation mujhe aur mehnat karne ki motivation deta hai.",
+            "Tumhara kaam consistently accha hai.": "Thanks! Tumhara support mujhe apni consistency maintain karne mein madad karta hai.",
+            "Tumhara thoughtfulness kaafi evident hai.": "Shukriya! Tumhara feedback mujhe apni thought process ko refine karne mein madad karta hai.",
+            "Tumhara communication skills acchi hain.": "Thanks! Tumhara feedback mujhe apne communication ko improve karne mein madad karta hai.",
+            "Tumhara time management bahut efficient hai.": "Thanks! Tumhara feedback mujhe time manage karne mein aur behtar banata hai.",
+            "Tumhara work ethic sach mein inspiring hai.": "Thanks! Tumhara appreciation mujhe aur disciplined banane mein madad karta hai.",
+            "Tumhara approach kaafi unique hai.": "Thanks! Tumhare feedback se mujhe apne approach ko aur innovate karne ka mauka milta hai.",
+            "Tumhara kaam bahut impressive hai.": "Shukriya! Tumhara support mujhe aur strive karne ki energy deta hai.",
+            "Tumhara attitude hamesha positive hota hai.": "Thanks! Tumhara positivity mujhe aur motivated rakhta hai.",
+            "Tumne apne kaam ko kaafi efficiently complete kiya.": "Shukriya! Tumhara feedback mujhe aur better karne ke liye push karta hai.",
+            "Tumhara kaam hamesha timely hota hai.": "Thanks! Tumhara support mujhe time management ko aur behtar karne mein madad karta hai.",
+            "Tumne apne kaam ko bahut well-planned tarike se kiya hai.": "Thanks! Tumhare feedback se main apne plans ko aur refine karta hoon.",
+            "Tumhara focus hamesha impressive hota hai.": "Thanks! Tumhara feedback mujhe apne focus ko aur sharpen karne mein madad karta hai.",
+            "Yeh kaam utna acha nahi laga.": "Mujhe afsos hai, main ispe kaam karunga.",
+            "Yeh idea bilkul bhi kaam nahi kar raha.": "Samajh sakta hoon, main isko improve karunga.",
+            "Tumhe yeh kaam aur achhe se karna chahiye tha.": "Mujhe afsos hai, main apni galti sudharunga.",
+            "Tumne kaafi time waste kiya hai.": "Mujhe yeh sunkar bura laga, main time manage karne pe kaam karunga.",
+            "Yeh decision bilkul galat tha.": "Mujhe afsos hai, main next time better decision lunga.",
+            "Main tumhe yeh kaam dene mein confident nahi hoon.": "Samajh sakta hoon, main apne kaam ko improve karunga.",
+            "Tumne apne goals ko thoda neglect kiya hai.": "Mujhe afsos hai, main apne goals pe aur focus karunga.",
+            "Tumhara kaam time par nahi ho raha.": "Mujhe afsos hai, main time management pe kaam karunga.",
+            "Tumne kuch bahut bada mistake kiya hai.": "Mujhe afsos hai, main isse seekhunga aur next time better karunga.",
+            "Tumhare kaam ka quality thoda low hai.": "Mujhe yeh sunkar bura laga, main quality pe kaam karunga.",
+            "Yeh kaam bahut disappointing tha.": "Mujhe afsos hai, main apni performance ko improve karunga.",
+            "Tumne galat decision liya.": "Mujhe afsos hai, main next time aur achha decision lunga.",
+            "Yeh project kaafi underwhelming tha.": "Mujhe afsos hai, main is project ko next time improve karunga.",
+            "Tumhara kaam thoda inconsistent lag raha hai.": "Samajh sakta hoon, main consistency pe kaam karunga.",
+            "Tumne apni responsibilities ko neglect kiya hai.": "Mujhe afsos hai, main apni responsibilities ko pehle priority dunga.",
+            "Tumhara kaam predictable lag raha hai.": "Shukriya! Main thoda aur creative hoon.",
+            "Tumhe zyada effort dalna chahiye tha.": "Mujhe afsos hai, main next time apni efforts ko badhane ki koshish karunga.",
+            "Tumhara kaam incomplete tha.": "Mujhe afsos hai, main next time pura kaam complete karunga.",
+            "Tumhe yeh kaam time par pura karna tha.": "Mujhe afsos hai, main future mein time par pura karunga.",
+            "Tumhare kaam ka outcome expected se kafi kam hai.": "Samajh sakta hoon, main is pe aur kaam karunga.",
+            "Tumhara approach thoda rigid hai.": "Samajh sakta hoon, main apni approach ko thoda flexible banane ki koshish karunga.",
+            "Tumne kaafi time waste kiya hai.": "Mujhe afsos hai, main time management pe kaam karunga.",
+            "Tumhara kaam pura nahi ho paaya.": "Mujhe afsos hai, main next time kaam ko time pe complete karunga.",
+            "Tumhara effort thoda kam laga.": "Mujhe yeh sunkar bura laga, main apne efforts ko improve karunga.",
+            "Tumhare ideas thode average lag rahe hain.": "Samajh sakta hoon, main next time aur innovative ideas dunga.",
+            "Tumhara kaam thoda sloppy tha.": "Mujhe afsos hai, main apne kaam ko zyada polished karunga.",
+            "Tumhara kaam bahut slow hai.": "Mujhe afsos hai, main speed pe kaam karunga.",
+            "Tumhare kaam mein bahut flaws hain.": "Mujhe yeh sunkar bura laga, main apni mistakes sudharunga.",
+            "Tumhe apna kaam pehle complete karna chahiye tha.": "Samajh sakta hoon, main apni priorities ko better set karunga.",
+            "Tumne apna kaam thik se nahi kiya.": "Mujhe yeh sunkar bura laga, main apne kaam ko next time behtar karunga.",
+            "Tumhara approach thoda weak hai.": "Mujhe yeh sunkar bura laga, main apni approach ko thoda strong karunga.",
+            "Tumhara kaam thoda repetitive lag raha hai.": "Samajh sakta hoon, main apne kaam ko aur diverse karunga.",
+            "Tumhare kaam mein originality ki kami hai.": "Shukriya! Main apne kaam mein originality pe kaam karunga.",
+            "Tumhara kaam boring lag raha hai.": "Mujhe afsos hai, main apne kaam ko aur interesting banane ki koshish karunga.",
+            "This isn’t very good.": "I’m sorry to hear that. I’ll work on improving it.",
+            "This idea isn’t working at all.": "I understand, I’ll make the necessary changes.",
+            "You should have done this better.": "I apologize for that, I’ll work to improve.",
+            "You’ve wasted a lot of time.": "I’m sorry, I’ll focus on time management moving forward.",
+            "This decision was completely wrong.": "I’m sorry, I’ll make sure to do better next time.",
+            "I'm not confident in this work.": "I understand, I’ll make sure to improve the quality.",
+            "You neglected your goals.": "I’m sorry, I’ll focus better on achieving them.",
+            "Your work isn’t on time.": "I apologize, I’ll work on completing tasks on schedule.",
+            "You made a huge mistake.": "I’m sorry, I’ll learn from it and do better next time.",
+            "This is disappointing.": "I’m sorry, I’ll work on improving my performance.",
+            "You took the wrong decision.": "I apologize for that, I’ll make better decisions next time.",
+            "This project didn’t turn out well.": "I’m sorry, I’ll work on improving it.",
+            "Your work is a bit inconsistent.": "I understand, I’ll work on maintaining consistency.",
+            "You’ve neglected your responsibilities.": "I apologize, I’ll prioritize my responsibilities moving forward.",
+            "Your work seems a bit repetitive.": "I’ll try to bring more variety and creativity next time.",
+            "Your work lacks originality.": "I’m sorry to hear that. I’ll work on making it more unique.",
+            "Your work was a bit sloppy.": "I apologize for that. I’ll make sure to do it more carefully next time.",
+            "Your pace is slow.": "I’m sorry for the delay, I’ll work on improving my speed.",
+            "There are too many flaws in your work.": "I understand, I’ll work on improving the quality.",
+            "You should have completed this on time.": "I apologize, I’ll make sure to meet deadlines next time.",
+            "Your effort seems lacking.": "I’m sorry for that. I’ll work on putting in more effort.",
+            "Your ideas are a bit average.": "I understand. I’ll try to come up with more innovative ideas.",
+            "Your work isn’t polished.": "I’ll make sure to improve the quality next time.",
+            "Your work is too predictable.": "I’ll try to make it more creative and surprising.",
+            "Your focus is off.": "I apologize, I’ll work on staying more focused.",
+            "Your work didn’t meet expectations.": "I understand. I’ll improve it and make sure it exceeds expectations next time.",
+            "Your work wasn’t thorough.": "I’m sorry. I’ll make sure to complete everything next time.",
+            "Your work doesn’t have a strong structure.": "I’ll work on organizing it better next time.",
+            "You need to work faster.": "I understand, I’ll focus on speeding up my process.",
+            "You didn’t give enough effort to this task.": "I apologize, I’ll make sure to put in more effort.",
+            "Your work is not up to the mark.": "I’m sorry, I’ll improve the quality next time.",
+            "Your decision-making wasn’t the best.": "I understand, I’ll make better choices moving forward.",
+            "Your approach is too rigid.": "I’ll try to be more flexible next time.",
+            "Your task completion is slow.": "I’m sorry, I’ll focus on being more efficient.",
+            "You didn’t finish the work on time.": "I apologize, I’ll work on meeting deadlines next time.",
+            "Your work quality is poor.": "I understand, I’ll work on improving it.",
+            "Your progress is very slow.": "I’ll work on speeding things up.",
+            "You haven’t followed instructions properly.": "I’m sorry, I’ll make sure to follow them correctly next time.",
+            "You’re not staying on track.": "I understand, I’ll focus more on staying on task.",
+            "Your ideas need more development.": "I’ll work on refining them further.",
+            "This is completely wrong.": "I see, I’ll correct it right away.",
+            "You didn’t handle this well.": "I understand, I’ll improve on this for next time.",
+            "This was a bad decision.": "I understand, I’ll learn from this and make better decisions.",
+            "You didn’t put enough thought into this.": "I see, I’ll make sure to plan better next time.",
+            "You were too overconfident.": "I’ll work on staying grounded and balanced moving forward.",
+            "This approach doesn’t make sense.": "I see, I’ll rethink the approach and find a better one.",
+            "You're not thinking through this properly.": "I understand, I’ll make sure to analyze better next time.",
+            "This doesn’t meet our standards.": "I understand, I’ll work to meet the standards moving forward.",
+            "You didn’t manage this situation well.": "I’ll reflect on this and handle it better next time.",
+            "You failed to deliver.": "I see, I’ll make sure to deliver next time.",
+            "Your solution doesn’t work.": "I’ll come up with a better solution and try again.",
+            "You missed the mark.": "I see, I’ll make sure to focus more and get it right next time.",
+            "You’re not taking responsibility.": "I understand, I’ll take responsibility and improve.",
+            "You’re not listening to others.": "I see, I’ll work on listening better.",
+            "You’re not taking the right actions.": "I understand, I’ll take better actions moving forward.",
+            "This approach lacks direction.": "I’ll work on giving it more direction next time.",
+            "You’re missing the bigger picture.": "I see, I’ll focus on the broader perspective next time.",
+            "You're too slow in responding.": "I’ll work on being quicker in my responses.",
+            "This is completely inadequate.": "I see, I’ll make sure to improve next time.",
+            "You're not handling pressure well.": "I understand, I’ll work on staying calm under pressure.",
+            "This isn’t the right solution.": "I see, I’ll find a better solution.",
+            "Your timing is off.": "I’ll work on improving my timing next time.",
+            "Your approach isn’t working.": "I see, I’ll try a different approach next time.",
+            "You didn’t provide enough evidence.": "I understand, I’ll make sure to back up my work next time.",
+            "You missed a lot of important details.": "I’ll pay more attention to details moving forward.",
+            "You didn't analyze this properly.": "I see, I’ll improve my analysis next time.",
+            "You’re not being honest.": "I understand, I’ll make sure to be more transparent.",
+            "This isn’t good enough.": "I see, I’ll improve it significantly.",
+            "You didn’t consider other perspectives.": "I’ll make sure to consider all perspectives next time.",
+            "Your judgment is flawed.": "I see, I’ll work on improving my judgment.",
+            "You didn’t plan ahead.": "I understand, I’ll plan better next time.",
+            "This decision was completely off.": "I see, I’ll reconsider and make better decisions next time.",
+            "You’re not being realistic.": "I understand, I’ll focus on being more practical.",
+            "You need to rethink this idea.": "I see, I’ll rethink it and refine the idea.",
+            "You didn’t do enough research.": "I understand, I’ll make sure to do more research next time.",
+            "Your decision is shortsighted.": "I see, I’ll consider all factors before making a decision next time.",
+            "This plan won’t work.": "I understand, I’ll come up with a better plan.",
+            "You haven’t provided a clear solution.": "I’ll work on offering clearer solutions in the future.",
+            "You’re not following through.": "I understand, I’ll focus on following through better.",
+            "You haven’t solved the problem.": "I’ll make sure to find a better solution.",
+            "You're not learning from your mistakes.": "I see, I’ll reflect more and learn from them.",
+            "You're ignoring the feedback.": "I understand, I’ll pay more attention to feedback moving forward.",
+            "This approach is unrealistic.": "I see, I’ll work on finding a more realistic approach.",
+            "This isn't good.": "I’ll work on improving it.",
+            "This needs work.": "I understand, I’ll improve it.",
+            "This isn't right.": "I’ll fix it.",
+            "This isn't enough.": "I see, I’ll do more.",
+            "Too slow.": "I’ll speed it up.",
+            "Not good enough.": "I’ll try harder next time.",
+            "You’re not focused.": "I’ll stay more focused.",
+            "This is incomplete.": "I’ll finish it up.",
+            "Too rushed.": "I’ll take more time on it.",
+            "This was wrong.": "I’ll correct it.",
+            "You missed the point.": "I see, I’ll work on it.",
+            "This is confusing.": "I’ll make it clearer.",
+            "You've missed something.": "I’ll check again.",
+            "This needs improvement.": "I’ll do better.",
+            "Too repetitive.": "I’ll work on variety.",
+            "Not enough effort.": "I’ll put in more effort.",
+            "This isn't accurate.": "I’ll fix that.",
+            "Too complicated.": "I’ll simplify it.",
+            "You didn’t focus enough.": "I’ll improve my focus.",
+            "This is sloppy.": "I’ll clean it up.",
+            "Not enough details.": "I’ll add more.",
+            "This is unclear.": "I’ll clarify it.",
+            "Too late.": "I’ll be faster next time.",
+            "Too basic.": "I’ll add more depth.",
+            "You missed the deadline.": "I’ll make sure to meet it next time.",
+            "This isn’t enough work.": "I’ll do more.",
+            "This isn’t right yet.": "I’ll make changes.",
+            "Your idea needs work.": "I’ll think about it more.",
+            "This could be better.": "I’ll improve it.",
+            "Not the right approach.": "I’ll try another way.",
+            "This needs a lot of improvement.": "I’ll work on that.",
+            "You didn’t finish it.": "I’ll complete it.",
+            "This is weak.": "I’ll strengthen it.",
+            "This isn’t polished.": "I’ll make it more refined.",
+            "This doesn’t work.": "I’ll fix it.",
+            "This is not enough.": "I’ll do more.",
+            "Not detailed enough.": "I’ll add details.",
+            "You’ve got more to do.": "I’ll finish the work.",
+            "This is rushed.": "I’ll slow down and improve.",
+            "You didn’t try hard enough.": "I’ll put in more effort.",
+            "This is unfinished.": "I’ll wrap it up.",
+            "Not enough time spent on it.": "I’ll dedicate more time.",
+            "This isn’t complete.": "I’ll finish it soon.",
+            "This is not up to par.": "I’ll work harder.",
+            "This lacks clarity.": "I’ll make it clearer.",
+            "Great job!": "Thanks! I'm glad you liked it.",
+            "Nice work!": "Thank you! That means a lot.",
+            "Well done!": "Thanks! Appreciate it.",
+            "Good effort!": "Thanks! I’ll keep improving.",
+            "Excellent!": "Thank you! I'll keep up the good work.",
+            "Well played!": "Thanks! Glad it worked out.",
+            "Nice try!": "Thanks! I’ll get it next time.",
+            "Good thinking!": "Thanks! I’ll keep that in mind.",
+            "Impressive!": "Thank you! I’m happy with how it turned out.",
+            "You nailed it!": "Thanks! Glad you think so.",
+            "Awesome!": "Thanks! I’m really happy with that.",
+            "You did great!": "Thank you! Appreciate it.",
+            "You're on fire!": "Thanks! I’ll keep the momentum going.",
+            "Good job!": "Thanks! I’m glad it went well.",
+            "Perfect!": "Thank you! I’m happy with the result.",
+            "Nice work, well done!": "Thanks! Appreciate your feedback.",
+            "You did awesome!": "Thanks! I feel good about it.",
+            "Great thinking!": "Thanks! I’ll keep improving.",
+            "You did fantastic!": "Thank you! Your words mean a lot.",
+            "Good job on this!": "Thanks! Glad you liked it.",
+            "Keep it up!": "Thanks! I’ll do my best.",
+            "That’s amazing!": "Thank you! I’m happy you think so.",
+            "Looks good!": "Thanks! I’ll make sure it stays that way.",
+            "Well executed!": "Thanks! Glad it worked out.",
+            "That's brilliant!": "Thank you! I’m glad you liked it.",
+            "You've got this!": "Thanks! I'll keep pushing myself.",
+            "Well done, really!": "Thanks! Your support makes a difference.",
+            "That's great!": "Thank you! I appreciate that.",
+            "Nice effort!": "Thanks! I’ll work on getting even better.",
+            "Fantastic job!": "Thank you! I’m happy with the feedback.",
+            "That’s a great idea!": "Thanks! Glad you think so.",
+            "That’s the way to do it!": "Thanks! I'll keep that in mind.",
+            "That's spot on!": "Thank you! I’m glad you noticed.",
+            "That was clever!": "Thanks! I’ll try more ideas like this.",
+            "You’re doing well!": "Thanks! I’ll keep working at it.",
+            "That’s brilliant work!": "Thank you! I’ll keep up the good work.",
+            "That’s impressive work!": "Thanks! I’m glad it turned out well.",
+            "You're making great progress!": "Thank you! I’ll keep improving.",
+            "You're killing it!": "Thanks! I’ll keep going.",
+            "Great to hear!": "Thanks! I’ll make sure to keep up.",
+            "You're doing great!": "Thank you! I’ll keep it up.",
+            "That’s really good!": "Thanks! I’ll work on refining it more.",
+            "You're doing awesome!": "Thank you! Your words keep me motivated.",
+            "Great stuff!": "Thanks! I’m happy you like it.",
+            "Excellent work!": "Thanks! I'll keep working hard.",
+            "Good stuff!": "Thanks! I’ll improve it further.",
+            "What courses are offered at Synergy Institute of Engineering and Technology, Dhenkanal?": "The institute offers a wide range of undergraduate and postgraduate courses in fields like Engineering, Computer Science, Electrical Engineering, Civil Engineering, Mechanical Engineering, and Management.",
+            "What is the campus like at Synergy Institute of Engineering and Technology?": "The campus is spacious, with modern infrastructure, well-equipped classrooms, laboratories, and recreational facilities for students. It also has a green and clean environment conducive to learning.",
+            "Is Synergy Institute of Engineering and Technology, Dhenkanal a good college?": "Yes, Synergy Institute is known for its academic excellence, experienced faculty, and placement opportunities in reputed companies. It also focuses on overall student development.",
+            "What are the admission requirements for Synergy Institute of Engineering and Technology?": "Admissions to the undergraduate programs are typically based on entrance exams like JEE Main or the OJEE (Odisha Joint Entrance Examination), and for postgraduate programs, GATE or relevant entrance exams are considered.",
+            "What is the placement record of Synergy Institute of Engineering and Technology?": "The institute has a good placement record, with many students getting placed in top companies in the IT, manufacturing, and engineering sectors. It also conducts training programs to enhance employability.",
+            "How are the faculty members at Synergy Institute of Engineering and Technology?": "The faculty members are highly qualified, with a blend of academic experience and industry expertise. They provide a good learning experience for students and focus on both theoretical and practical knowledge.",
+            "Does Synergy Institute of Engineering and Technology offer hostel facilities?": "Yes, Synergy Institute provides separate hostel facilities for both male and female students, with basic amenities and a comfortable living environment.",
+            "What are the extracurricular activities at Synergy Institute of Engineering and Technology?": "The institute encourages students to participate in a variety of extracurricular activities, including cultural events, sports, workshops, and technical festivals.",
+            "What is the fee structure at Synergy Institute of Engineering and Technology?": "The fee structure varies by course. It is important to visit the official website or contact the admissions office for the most up-to-date information regarding fees.",
+            "Does Synergy Institute of Engineering and Technology provide scholarships?": "Yes, the institute offers various scholarships for meritorious students, and some are also available for students from economically weaker sections.",
+            "Is the infrastructure good at Synergy Institute of Engineering and Technology?": "Yes, Synergy Institute is equipped with modern infrastructure, including well-equipped laboratories, libraries, sports facilities, and a Wi-Fi-enabled campus to support the academic and personal development of students.",
+            "What is the student-teacher ratio at Synergy Institute of Engineering and Technology?": "The student-teacher ratio is favorable, ensuring personal attention and better interaction between students and faculty members.",
+            "Does Synergy Institute of Engineering and Technology have industry tie-ups?": "Yes, the institute has collaborations with various industries, which help in internships, projects, and campus placements, providing real-world exposure to students.",
+            "How is the campus life at Synergy Institute of Engineering and Technology?": "Campus life is vibrant and full of opportunities, with a focus on both academic and extracurricular growth. Students can engage in clubs, sports, cultural events, and workshops.",
+            "How do I apply to Synergy Institute of Engineering and Technology?": "You can apply through the official website of the institute or through the OJEE or JEE Main counseling process for undergraduate courses. For postgraduate programs, applications can be made based on the respective entrance exams.",
+            "What are the facilities available for engineering students at Synergy Institute of Engineering and Technology?": "Engineering students have access to state-of-the-art laboratories, project workspaces, research facilities, and industry visits to enhance practical learning.",
+            "What is the admission process for Synergy Institute of Engineering and Technology?": "The admission process involves entrance exams like JEE Main, OJEE for undergraduate courses, and GATE or other relevant exams for postgraduate programs. Merit-based counseling is also conducted for final selection.",
+            "Is there any sports facility at Synergy Institute of Engineering and Technology?": "Yes, Synergy Institute offers various sports facilities including indoor and outdoor games, and it organizes annual sports events to encourage physical fitness and sportsmanship among students.",
+            "How can I contact Synergy Institute of Engineering and Technology?": "You can contact the institute through the official website or directly reach out to the admissions office for any queries regarding courses, admissions, and campus life.",
+            "What is the location of Synergy Institute of Engineering and Technology, Dhenkanal?": "The institute is located in Dhenkanal, Odisha, which is easily accessible by road and is well connected to major cities in Odisha.",
+            "Does Synergy Institute of Engineering and Technology have a computer lab?": "Yes, the institute has well-equipped computer labs with the latest software and hardware to support the needs of students studying Computer Science, IT, and other engineering disciplines.",
+            "How is the environment for research at Synergy Institute of Engineering and Technology?": "The institute promotes research and innovation among students, with dedicated research labs and opportunities to work on real-world projects in various fields of engineering and technology.",
+            "What kind of internships does Synergy Institute of Engineering and Technology offer?": "The institute offers internships in various fields of engineering, IT, and management, in collaboration with industry partners and through placement drives.",
+            "Does Synergy Institute of Engineering and Technology offer any industry certifications?": "Yes, Synergy Institute organizes certification programs and workshops in association with industry experts to help students acquire additional skills and improve their employability.",
+            "What is the student feedback like about Synergy Institute of Engineering and Technology?": "Students generally appreciate the academic environment, faculty support, and the campus facilities. The institute focuses on practical learning, which enhances overall student experience.",
+            "Are there any alumni associations at Synergy Institute of Engineering and Technology?": "Yes, Synergy Institute has a strong alumni network that actively contributes to mentoring current students and helps in placements and industry connections.",
+            "Is Synergy Institute a private college?": "Yes, it's a private engineering college in Dhenkanal.",
+            "Does Synergy offer B.Tech courses?": "Yes, B.Tech courses are available in multiple engineering disciplines.",
+            "Is there a library at Synergy Institute?": "Yes, the institute has a well-stocked library.",
+            "Is Synergy Institute accredited?": "Yes, it is accredited by relevant authorities and provides quality education.",
+            "Are there any cultural events at Synergy?": "Yes, the institute organizes various cultural events throughout the year.",
+            "Does Synergy provide placement assistance?": "Yes, the college has a placement cell that supports students in securing jobs.",
+            "What is the hostel fee at Synergy Institute?": "Hostel fees vary, so you need to contact the admissions office for details.",
+            "Is there a computer science department at Synergy?": "Yes, there is a dedicated computer science department with modern labs.",
+            "Is the campus Wi-Fi enabled?": "Yes, the campus provides Wi-Fi facilities for students and staff.",
+            "Does Synergy offer a management program?": "Yes, Synergy offers MBA and other management-related programs.",
+            "Is the campus safe for female students?": "Yes, the campus is safe, with separate hostels for female students.",
+            "Does Synergy offer part-time courses?": "Currently, Synergy primarily offers full-time courses.",
+            "Are industry visits part of the curriculum?": "Yes, industry visits are organized to enhance learning.",
+            "How is the student life at Synergy Institute?": "Student life is vibrant with various clubs and activities.",
+            "Can I apply online to Synergy Institute?": "Yes, online application options are available on the official website.",
+            "Are there any scholarships for students?": "Yes, Synergy offers scholarships based on merit and need.",
+            "Does Synergy have a sports facility?": "Yes, the college has sports facilities for indoor and outdoor games.",
+            "Is there a cafeteria on campus?": "Yes, the campus has a cafeteria offering various food options.",
+            "Does Synergy provide transportation facilities?": "Yes, the institute provides transportation services for students.",
+            "Is there a research center at Synergy?": "Yes, Synergy has research facilities for students and faculty.",
+            "How can I get in touch with the admission office?": "You can contact the admission office via the official website or call the provided contact numbers.",
+            "Does Synergy have a campus placement cell?": "Yes, Synergy has an active campus placement cell to help students with job opportunities.",
+            "Are there any exchange programs at Synergy Institute?": "Currently, Synergy doesn’t offer exchange programs, but it does have industry collaborations.",
+            "What is the total number of students at Synergy Institute?": "The total number of students varies annually; you can contact the institute for the exact figure.",
+            "Can I pursue M.Tech at Synergy Institute?": "Yes, M.Tech is offered in several specializations at Synergy.",
+            "Is Synergy Institute good for Computer Science?": "Yes, Synergy has a strong Computer Science department with excellent faculty.",
+            "Does Synergy offer training for competitive exams?": "Yes, there are preparatory sessions for exams like GATE and GRE.",
+            "Is there a counselling service at Synergy Institute?": "Yes, Synergy provides counselling for academic and personal guidance.",
+            "Is there a student council at Synergy Institute?": "Yes, there is a student council that represents the student body.",
+            "Does Synergy offer placement in top companies?": "Yes, Synergy students have been placed in reputed companies.",
+            "Are the faculty members qualified at Synergy?": "Yes, the faculty members are highly qualified and experienced in their fields.",
+            "What is the fee structure for B.Tech?": "The fee structure varies for different branches; please refer to the official website.",
+            "Can I get a job after completing an engineering degree from Synergy?": "Yes, Synergy has a good placement record in top companies.",
+            "Does Synergy offer hostel food?": "Yes, the hostel provides meals for students.",
+            "Is Synergy Institute involved in social work?": "Yes, Synergy conducts social outreach programs and initiatives.",
+            "Is there any student exchange program at Synergy?": "At the moment, there are no student exchange programs, but industry internships are available.",
+            "How is the infrastructure at Synergy Institute?": "The infrastructure is modern and well-equipped with all necessary facilities.",
+            "Does Synergy have a digital library?": "Yes, Synergy has a digital library with access to various e-resources.",
+            "Can I pursue both B.Tech and MBA at Synergy?": "No, Synergy offers separate courses for B.Tech and MBA, but not as a dual program.",
+            "Does Synergy have a computer lab?": "Yes, there are well-equipped computer labs for students.",
+            "Can I visit the campus before applying?": "Yes, you can visit the campus after contacting the admission office.",
+            "Does Synergy provide online classes?": "Yes, Synergy offers online classes for certain programs and courses.",
+            "Is there a faculty development program at Synergy Institute?": "Yes, the institute conducts regular faculty development programs to enhance teaching quality.",
+            "Can I get my transcript from Synergy Institute?": "Yes, students can request transcripts from the administration office.",
+            "Is there a library app for students at Synergy?": "Yes, Synergy has a digital library app for students.",
+            "Does Synergy organize technical fests?": "Yes, Synergy organizes technical fests and workshops for students.",
+            "Is there a mentor program at Synergy?": "Yes, students are assigned mentors to guide them throughout their course.",
+            "Does Synergy have an entrepreneurship cell?": "Yes, Synergy has an entrepreneurship cell to support aspiring student entrepreneurs.",
+            "Can I switch branches at Synergy after admission?": "Branch change is subject to availability and eligibility criteria set by the institute.",
+            "How do I check my exam results at Synergy?": "Results are available on the official website or can be checked through the student portal.",
+            "Does Synergy have a gym facility?": "Yes, Synergy provides a gym facility for students and staff.",
+            "Does Synergy offer any foreign language courses?": "Yes, Synergy offers foreign language courses like German and French.",
+            "Are there any student clubs at Synergy Institute?": "Yes, Synergy has various student clubs including cultural, technical, and literary clubs.",
+            "Does Synergy offer online exams?": "Yes, Synergy conducts online exams for certain courses and assessments.",
+            "Is there a career counseling service at Synergy?": "Yes, career counseling services are available to guide students in their career paths.",
+            "Does Synergy offer a paperless environment?": "Yes, Synergy encourages a paperless environment with digital assignments and resources.",
+            "Can I take a break during the academic year at Synergy?": "Yes, breaks are allowed during holidays or approved leave.",
+            "How is the hostel food at Synergy Institute?": "The hostel food is good and nutritious, with a variety of options for students.",
+            "Is the Synergy campus big?": "Yes, the campus is spacious and well-maintained.",
+            "Can I visit Synergy before applying?": "Yes, you can visit the campus, just contact the admissions office first.",
+            "Are there any events at Synergy?" : "Yes, Synergy organizes various cultural and technical events.",
+            "Is there a student support system?" : "Yes, Synergy has a strong support system for students' academic and personal needs.",
+            "Can I get a scholarship at Synergy?" : "Yes, scholarships are available for meritorious students.",
+            "Do they have a library at Synergy?" : "Yes, Synergy has a fully equipped library with a wide range of books.",
+            "How’s the food at Synergy’s hostel?" : "The food is hygienic and offers variety for students.",
+            "Are there extracurricular activities at Synergy?" : "Yes, Synergy offers a wide range of extracurricular activities including sports and clubs.",
+            "How is the environment at Synergy?" : "The environment is friendly, positive, and focused on growth.",
+            "Are there industry internships at Synergy?" : "Yes, internships are provided with industry collaborations.",
+            "How’s the Wi-Fi at Synergy?" : "Wi-Fi is available throughout the campus for students.",
+            "Is Synergy good for Computer Science?" : "Yes, the Computer Science department is well-equipped and highly rated.",
+            "Does Synergy offer a management course?" : "Yes, Synergy offers MBA and related programs.",
+            "How is the student-to-faculty ratio?" : "The student-to-faculty ratio is balanced for better interaction.",
+            "Is there a placement drive at Synergy?" : "Yes, Synergy conducts regular placement drives for students.",
+            "Does Synergy offer PG courses?" : "Yes, Synergy offers postgraduate courses in Engineering and Management.",
+            "How is the campus atmosphere?" : "The campus atmosphere is vibrant with a mix of academics and fun.",
+            "Are there any industrial visits?" : "Yes, there are industrial visits for practical exposure.",
+            "Does Synergy have a computer lab?" : "Yes, Synergy has a well-equipped computer lab for students.",
+            "Is there a hostel for students?" : "Yes, there are separate hostels for boys and girls.",
+            "How is the classroom experience at Synergy?" : "Classrooms are well-equipped with modern teaching aids.",
+            "Does Synergy provide transport?" : "Yes, transport facilities are available for students from nearby areas.",
+            "Is there a gym at Synergy?" : "Yes, Synergy has a gym for students to stay fit.",
+            "How’s the quality of teaching at Synergy?" : "The faculty is highly qualified and dedicated to student success.",
+            "Does Synergy have a playground?" : "Yes, Synergy has sports grounds for various outdoor activities.",
+            "Are the labs well-equipped?" : "Yes, the labs are equipped with modern tools and technologies.",
+            "Does Synergy have a good reputation?" : "Yes, Synergy has a strong reputation for quality education and placements.",
+            "Is there any student council?" : "Yes, Synergy has an active student council for student representation.",
+            "Does Synergy organize workshops?" : "Yes, workshops are regularly conducted to enhance student skills.",
+            "Are there any cultural fests?" : "Yes, Synergy organizes cultural fests every year.",
+            "Can I pursue research at Synergy?" : "Yes, Synergy encourages students to participate in research activities.",
+            "Is Synergy an accredited college?" : "Yes, Synergy is accredited by various relevant authorities.",
+            "Is there a library app?" : "Yes, there is a digital library app for easy access to resources.",
+            "How is the hostel life at Synergy?" : "Hostel life is comfortable and provides a supportive environment.",
+            "Can I apply online?" : "Yes, you can apply online through the official website.",
+            "Does Synergy have any foreign tie-ups?" : "Yes, Synergy has collaborations with international institutions for student exchange and research.",
+            "Is there any campus recruitment?" : "Yes, campus recruitment is actively organized by the placement cell.",
+            "How do I get my exam results?" : "You can check your exam results online through the student portal.",
+            "Are there any fees for extracurricular activities?" : "No, extracurricular activities are free for all students.",
+            "Does Synergy offer any online courses?" : "Yes, Synergy offers some online certification courses.",
+            "How’s the faculty at Synergy?" : "The faculty is experienced and always ready to help students.",
+            "Does Synergy have a sports team?" : "Yes, Synergy has a sports team that competes in various events.",
+            "Is there any career counseling?" : "Yes, career counseling is available to guide students in their career paths.",
+            "Can I participate in research projects?" : "Yes, students are encouraged to participate in research projects.",
+            "How is the teaching quality at Synergy?" : "The teaching quality is excellent with practical learning incorporated.",
+            "Can I pursue a project at Synergy?" : "Yes, Synergy encourages students to work on projects in various fields.",
+            "Is there a mentorship program?" : "Yes, Synergy has a mentorship program to guide students throughout their course.",
+            "Does Synergy have a digital campus?" : "Yes, the campus is tech-savvy with digital learning resources.",
+            "How’s the atmosphere in classrooms?" : "Classrooms are interactive and student-friendly.",
+            "Is there an alumni network?" : "Yes, Synergy has an active alumni network for professional guidance.",
+            "Is Synergy a good place for sports?" : "Yes, Synergy offers various sports activities for students to engage in.",
+            "How’s the infrastructure at Synergy?" : "The infrastructure is modern, with all necessary facilities for students.",
+            "Can I study abroad after Synergy?" : "Yes, many students from Synergy pursue higher studies abroad.",
+            "Does Synergy have an e-learning platform?" : "Yes, Synergy has an e-learning platform for students.",
+            "How’s the campus security?" : "The campus has tight security to ensure the safety of students.",
+            "Are there workshops on skill development?" : "Yes, Synergy regularly organizes skill development workshops.",
+            "tum bekar ho": "Bas yaar, galti se ho gaya!",
+            "tumse na ho paayega": "Kya pata, thoda aur mehnat karna padega!",
+            "tu kuch nahi kar sakta": "Aaj nahi toh kal, ho jaayega!",
+            "itna bhi nahi kar sakte": "Yeh bhi seekhna padega!",
+            "abe bekar aadmi": "Bas! Samajh gaya, galti ho gayi.",
+            "tu toh gaya kaam se": "Chal, next time better karunga.",
+            "tu sab gadbad kar deta hai": "Pichhli baar thik tha, abhi seekh jaunga!",
+            "tu kuch bhi kar ke dikha": "Koshish toh kar raha hoon, dekhna!",
+            "yahi hota hai tumse": "Ab toh sudhar jaaunga, promise!",
+            "kaunsa kaam kar paaya tu": "Chill, main next time perfect karunga!",
+            "tum kuch samajhte hi nahi ho": "Samajh raha hoon, seekhne ka time hai!",
+            "yahi toh tumhara level hai": "Thoda aur try karne ka time hai!",
+            "tumne toh sab bigaad diya": "Mujhse galti ho gayi, ab thik kar leta hoon.",
+            "tu toh bas fail hai": "Chal yaar, is baar nahi toh agli baar!",
+            "tumse toh kuch nahi ho sakta": "Main apni galti sudhaar ke aage badhunga!",
+            "tumhare haath mein kuch nahi": "Dekhna, kaise sab thik kar leta hoon!",
+            "tu toh pura bekaar hai": "Aaj nahi toh kal, sab thik ho jayega!",
+            "tu har baat pe fail ho jaata hai": "Yeh galti bhi sudhaar lunga, tension mat le!",
+            "ab toh laga diya tune": "Galti se ho gaya, par seekh gaya!",
+            "tumse koi kaam nahi ho sakta": "Main apni mistakes se seekh raha hoon!",
+            "tu galti galti pe galti karta rehta hai": "Mujhe thoda time de, main thik karunga!",
+            "pura ka pura bekaar hai tu": "Galti se ho gaya, par seekh gaya!",
+            "tu dumb hai": "Arre yaar, ek din smart ban jaunga!",
+            "yeh tumne kya kar diya": "Mujhse galti ho gayi, agla step better hoga!",
+            "har baar tum fail hi hote ho": "Galti sabse hoti hai, main seekh ke agla step lunga!",
+            "tum samajhdar nahi ho": "Main ab samajh gaya hoon, agli baar sahi karunga!",
+            "kuch seekhne ka mann nahi hai tumhara": "Seekh raha hoon, bas thoda time lagta hai!",
+            "ab kya karoge tum": "Main apni galti sudhaar ke agla step lunga!",
+            "tum itna bhi nahi kar sakte": "Thoda practice karunga, agla step perfect hoga!",
+            "tumhi toh sab badal dete ho": "Main apni galti se seekh raha hoon, next time sab theek hoga!",
+            "ab toh tumne kaam tamaam kar diya": "Yeh galti sudhaar ke agli baar better karunga!",
+            "yeh tumhara kaam nahi hai": "Main seekh raha hoon, next time better hoga!",
+            "tum kabhi nahi sudhroge": "Chal, sudhar jaunga dheere dheere!",
+            "tumne sab khatam kar diya": "Mujhe lagta hai ab sab theek ho jayega!",
+            "tu samajh nahi paaya": "Main samajh gaya hoon, agla time theek karunga!",
+            "tum har baar galat karte ho": "Galti sabse hoti hai, main seekh ke agla step lunga!",
+            "yeh sab tumse hi hota hai": "Main apni galti se seekh raha hoon!",
+            "tumne galti kar di": "Mujhse ho gaya, seekh ke sudhaarunga!",
+            "tumne sab kuch badal diya": "Galti ho gayi, par seekh gaya hoon!",
+            "tumne sab khatam kar diya tha": "Main next time better karunga, promise!",
+            "tumne pura kaam barbaad kar diya": "Chill yaar, agla step better hoga!",
+            "tumne jo kiya wo galat tha": "Haan, galat tha. Ab sab thik ho jayega!",
+            "tum khud ko samajhte kya ho": "Arre yaar, galti ho gayi. Sudhar jaaunga!",
+            "tumhe apni aukat samajhni chahiye": "Mujhse galti ho gayi, agla time better hoga!",
+            "ab tum dono milke galti kar rahe ho": "Pichhli galti ko sudhaar ke next time better karenge!",
+            "ab kya karoge tum sab milke": "Mujhse ho gaya, sab thik karunga!",
+            "tum kabhi nahi sudhroge yaar": "Chal, dheere dheere seekh jaunga!",
+            "tumne sab khatam kar diya tha na": "Galti ho gayi, ab sudhaar ke better karenge!",
+            "tu kabhi nahi sudhrega": "Ab toh sudhar ke dikhaunga!",
+            "tu hamesha galti karte rehta hai": "Chill yaar, main seekh gaya hoon!",
+            "tu toh bekar nikal gaya": "Galti se ho gaya, agla time perfect hoga!",
+            "tumhare saath toh kuch bhi theek nahi ho sakta": "Yeh galti sabse hoti hai, ab sab thik ho jayega!",
+            "tumhare kaam mein kuch nahi hai": "Mujhse galti ho gayi, seekh ke better karenge!",
+            "tum bahut acchhe ho": "Shukriya, tum bhi kam nahi ho!",
+            "tumhara dhanyavaad hai": "Mujhe madad kar ke accha laga!",
+            "tum bahut samajhdar ho": "Tumhare shabdon ka matlab samajhna accha lagta hai!",
+            "tumse milke accha laga": "Mujhe bhi tumse milke accha laga!",
+            "bahut mehnat kar rahe ho tum": "Shukriya, tum bhi apna kaam achhe se kar rahe ho!",
+            "tumne sab theek kiya": "Bas tumhari madad thi, isliye sab sahi ho gaya!",
+            "tum bahut thoughtful ho": "Main bas tumhare liye madad karna chahta hoon!",
+            "tumhari madad ka shukriya": "Tumhara saath hona hi kaafi hai!",
+            "tumne apne kaam se sabko prabhavit kiya": "Tumhara feedback mere liye bahut mahatvapurn hai!",
+            "tumhare ideas bahut ache hain": "Tumhara support milta raha toh aur bhi achha karunga!",
+            "tumhe dekhkar seekhne ko milta hai": "Shukriya, tumhara encouragement mere liye bahut important hai!",
+            "tumne sahi kaam kiya": "Tumhari baat sahi thi, main bhi wahi karna chahta hoon!",
+            "tumhare saath kaam karna bahut accha hai": "Main bhi tumhare saath kaam karke seekhta hoon!",
+            "tum hamesha madad karte ho": "Main har waqt tumhare saath hoon!",
+            "tumhara nature bahut accha hai": "Shukriya, tumhara bhi behavior bahut achha hai!",
+            "tumhare saath kaam karna asaan hai": "Main tumhare saath kaam karke bahut kuch seekhta hoon!",
+            "tumhare jazbaat bahut pyaare hain": "Main tumhare jazbaat ko samajhta hoon, tumhare saath hona accha lagta hai!",
+            "tum hamesha positive rehte ho": "Main apne kaam ko positive nazariye se dekhne ki koshish karta hoon!",
+            "tumhara saath hona hi bahut hai": "Mujhe bhi tumhara saath milna accha lagta hai!",
+            "tum bahut hi achha soch rahe ho": "Shukriya, tumhare ideas bhi mujhe inspire karte hain!",
+            "tumne bahut mehnat ki": "Tumhara pyaar aur support mujhe hard work karne ke liye inspire karta hai!",
+            "tumhare saath sab kuch asaan ho jaata hai": "Tumhara support mujhe har mushkil ko asaan banata hai!",
+            "tumhara jahan bhi ho, sabko help karte ho": "Main tumhare saath har jagah madad karne ko tayaar hoon!",
+            "tum hamesha sabki madad karte ho": "Tum bhi hamesha sabko madad karte ho!",
+            "tumhara dimaag bahut tez hai": "Tumhare thoughts mujhe hamesha naye raaste dikhate hain!",
+            "tum bahut achhe dost ho": "Main tumhe apna sabse accha dost maanta hoon!",
+            "tumne apne kaam ko bahut acchi tarah kiya": "Tumhare hard work se hi sab theek ho gaya!",
+            "tumhara idea bahut innovative hai": "Tumhara idea mujhe nayi soch dene mein madad karta hai!",
+            "tum sabse accha karte ho": "Tumhare jaise support se hi sab kuch possible ho pata hai!",
+            "tumhara patience amazing hai": "Tumhare patience se mujhe seekhne ko milta hai!",
+            "tumhare saath har cheez asaan ho jaati hai": "Tumhare saath kaam karna bilkul smooth hota hai!",
+            "tum hamesha sabko inspire karte ho": "Tumhara attitude mujhe motivate karta hai!",
+            "tumne jo kiya woh bahut accha tha": "Mujhe lagta hai tumhare ideas bahut zyada prabhavit karte hain!",
+            "tumhare ideas bahut helpful hote hain": "Tumhare ideas se mujhe har problem ka solution milta hai!",
+            "tumhara mazaak bahut accha hai": "Tumhara sense of humor sabko khush kar deta hai!",
+            "tumhare saath kaam karne mein maza aata hai": "Main tumhare saath kaam karke bahut enjoy karta hoon!",
+            "tumhare decision bahut soch samajh kar hote hain": "Tumhara decision-making process sabko prabhavit karta hai!",
+            "tum sabko apne saath rakhte ho": "Tumhare saath rehkar sabko bahut accha lagta hai!",
+            "tumhara vision bahut clear hai": "Tumhara direction mujhe hamesha inspire karta hai!",
+            "tumhare saath kaam karna easy hai": "Tumhare saath har kaam asaan lagta hai!",
+            "tumne jo decision liya woh perfect tha": "Main tumhare decision-making ko bahut respect karta hoon!",
+            "tumne har cheez ko achhe se samjha": "Tumhara approach hamesha sabko samajh mein aata hai!",
+            "tumhare saath baat karne se sab kuch clear hota hai": "Tumhare ideas se har confusion door ho jaati hai!",
+            "tumhara approach sabse accha hai": "Tumhara perspective har cheez ko better bana deta hai!",
+            "tumhara feedback helpful hota hai": "Tumhare feedback se hamesha mujhe apne kaam ko behtar karne ka mauka milta hai!",
+            "tum hamesha sabko positive feedback dete ho": "Tumhare positive feedback se sabka din ban jaata hai!",
+            "tumhara perspective alag aur accha hai": "Tumhare views se mujhe har cheez nayi nazar se dekhne ko milti hai!",
+            "tum hamesha sabko encourage karte ho": "Tumhara encouragement sabko apne kaam mein accha karne ki energy deta hai!",
+            "tumhara commitment bahut accha hai": "Tumhare commitment se hamesha inspire hota hoon!",
+            "tumne jo kaam kiya woh bahut impressive tha": "Tumhara kaam sabko bahut prabhavit karta hai!",
+            "tum bahut samajhdar aur caring ho": "Tumhara care karna sabko feel good karwata hai!",
+            "tu bekar hai": "Main apni galti sudhaar ke agla time better karunga!",
+            "tu kutta hai": "Main aap se respectfully baat kar raha hoon.",
+            "chod do yaar, kuch nahi hoga": "Mujhe thoda aur waqt do, sab kuch sahi hoga.",
+            "tu gadha hai": "Mujhe galti se seekhne ka mauka de.",
+            "kya be, sab bekar kar diya": "Chill, main next time sab theek karunga!",
+            "tujhse kuch nahi hoga": "Main apni mistakes se seekh raha hoon.",
+            "tere jaise log kuch nahi kar sakte": "Mujhe apne aap pe vishwas hai, sab thik ho jayega.",
+            "tu har baat pe fail hota hai": "Galti sabse hoti hai, main seekh kar agla step lunga.",
+            "abe ullu": "Please, respectful baat karo, hum sab seekh rahe hain.",
+            "tu samajhdar nahi hai": "Main seekh raha hoon, next time better karunga.",
+            "tu itna bekar hai": "Galti se ho gaya, par agla time better hoga.",
+            "teri koi aukat nahi hai": "Main apne aap ko sudhaar raha hoon.",
+            "tu hamesha galthi karta hai": "Galti sabse hoti hai, seekh kar sudhaarunga.",
+            "tu kuch samajhta hi nahi hai": "Main samajh gaya hoon, agla time better hoga.",
+            "tu sab gadbad kar deta hai": "Mujhe galti sudhaar ke agla time better karne ka chance do.",
+            "tu har baar fail hota hai": "Har galti se seekhne ko milta hai, agla time perfect hoga.",
+            "kya be, kuch nahi kar sakte": "Mujhe aur time dena, main sab thik karunga.",
+            "tu har cheez ka barbadi kar deta hai": "Mujhe galti sudhaar ke next time better karna hai.",
+            "tum bekar ho": "Mujhe aur seekhna hai, next time sab theek hoga.",
+            "tu itna dumb hai": "Mujhe thoda aur seekhna padega, phir sab sahi ho jayega.",
+            "teri wajah se sab bigad gaya": "Main apni galti sudhaar ke agla time perfect karunga.",
+            "tu har cheez ko fail kar deta hai": "Galti sabse hoti hai, seekh kar agla step lunga.",
+            "tu toh bas feku hai": "Mujhe galti se seekhne ka mauka dena, main better karunga.",
+            "tu kuch nahi kar sakta": "Main apne kaam par dhyan de raha hoon, sab thik hoga.",
+            "tu sab kuch khatam kar deta hai": "Mujhse galti ho gayi, ab thik kar leta hoon.",
+            "tu kuch samajhne ka naam nahi leta": "Samajh gaya hoon, next time better karunga.",
+            "tu har baat pe kuch na kuch galthi kar deta hai": "Main har galti se seekh raha hoon, sab thik hoga.",
+            "tu hamesha galti karte rehta hai": "Galti sabse hoti hai, main sudharne ki koshish kar raha hoon.",
+            "tu samajhta hi nahi": "Main samajhne ki koshish kar raha hoon, bas thoda waqt lagta hai.",
+            "tu har waqt galthi kar raha hai": "Mujhe apni galti sudhaar ke agla step lena hai.",
+            "tu pura fail hai": "Main seekh raha hoon, next time perfect karunga.",
+            "tu bahut useless hai": "Main apni galti sudhaar ke agla time better karunga.",
+            "tu bas bekaar hai": "Mujhe apni mistakes se seekhne ka chance do.",
+            "tu koi kaam ka nahi": "Main apni galti sudhaar ke apne kaam ko behtar karunga.",
+            "tu kabhi nahi sudhrega": "Mujhe lagta hai, main dheere dheere sudharunga.",
+            "tu sirf bakra hai": "Please, thoda respectful raho.",
+            "tu jo karta hai wo sab galat hota hai": "Main apni galti sudhaar ke agla step lunga.",
+            "tu sabse bekar hai": "Galti sabse hoti hai, main sudhaar karunga.",
+            "tere jese log kuch nahi kar sakte": "Mujhe apne kaam par vishwas hai, main better karunga.",
+            "tu bekar kaam kar raha hai": "Main apni galti sudhaar ke agla step lunga.",
+            "tu kuch samajh nahi paata": "Samajhne ki koshish kar raha hoon, thoda aur waqt dena.",
+            "tu bas galthi pe galthi karta rehta hai": "Galti sabse hoti hai, next time better hoga.",
+            "tu toh sab khatam kar deta hai": "Mujhe galti sudhaar ke next time better karna hai.",
+            "tu kuch samajhne ka naam nahi leta": "Main samajh raha hoon, ab sab thik hoga.",
+            "tu bekar ideas deta hai": "Main apne ideas ko sudhaar ke agla time better karunga.",
+            "tu hamesha galthi karta hai": "Galti sabse hoti hai, main sudhaar ke agla step lunga.",
+            "tu sab kuch galat kar deta hai": "Mujhe galti sudhaar ke agla time better karna hai.",
+            "tu apna kaam nahi kar sakta": "Main apni galti sudhaar ke next time perfect karunga.",
+            "tu sab kuch khatam kar deta hai": "Galti ho gayi, par next time better hoga.",
+            "tu kabhi kuch nahi sahi karta": "Main apni galti sudhaar ke agla time better karunga.",
+            "tu galat samajhta hai": "Mujhe samajhne ka time de, main better karunga.",
+            "tu jo karta hai wo sab bekar hai": "Mujhe lagta hai main sudhaar ke agla step lunga.",
+            "tu hamesha khatam kar deta hai": "Main apni galti sudhaar ke agla time better karunga.",
+            "chutiya": "teri himmat kaisi hui mujhe chutiya bolne ki.",
+            "lauda": "Please, thoda respectful raho.","teri maa ki chut": "madarchod, gandu, meri maa chodu bsdk wale.",
+            "gadha": "Main apni galti se seekh raha hoon, agla time better hoga.",
+            "kutta": "Main apni galti sudhaar ke agla time better karunga.",
+            "bhenchod": "chup be loude, Mujhe samajhne ka waqt do, main better karunga.",
+            "madarchod": "chup..Main apni galti samajh kar sudhaar karunga.",
+            "behen ki chut": "Mujhe lagta hai main apni galti sudhaar ke improve karna chahiye.",
+            "chutiya banaya tune": "Mujhe galti sudhaar ke next time better karna hai.",
+            "bhosdiwala": "tu bhosdi wala, tera baap bhosdi wala.","randi": "thanks for the invitation",
+            "saala": "Mujhe apni galti sudhaar kar agla time better karna hai.","teri mkc": "tu ganjedi sala",
+            "dhakkan": "Main apni galti samajh kar agla step lunga.","aukaat me reh": "meri aukaat tak tu nhi pahuch payega",
+            "gandu": "chup hoja nhi toh teri gand mar dunga bsdk?","bsdk":"teri mkc",
+            "kaminey": "Main apni galti sudhaar kar agla time better karunga.",
+            "chod": "aa teri gand maru.",
+            "kharab hai tu": "Main apni galti sudhaar kar agla time better karunga.",
+            "badwe": "Mujhe apni galti samajh kar sudhaar karna hai.",
+            "maa ki chut": "Main apni galti sudhaar ke agla time better karunga.",
+            "muthal": "Main apni galti samajh kar agla time better karunga.",
+            "muh kala": "Main apni galti sudhaar kar agla time better karunga.",
+            "lanat hai tere pe": "Mujhe apni galti sudhaar ke agla time better karna hai.",
+            "harami": "Main apni galti sudhaar ke next time better karunga.",
+            "bik gaya hai tu": "Main apni galti sudhaar ke agla step lunga.",
+            "khata hai tu": "Main apni galti samajh kar sudhaar karunga.",
+            "fattu": "Mujhe lagta hai main apni galti sudhaar ke agla step lunga.",
+            "gandmoot": "Main apni galti sudhaar kar agla time better karunga.",
+            "jhantu": "Tu bhdwe ki aulaad.",
+            "baap bana diya tune": "Main apni galti sudhaar kar agla time better karunga.",
+            "mard hai tu": "Main apni galti samajh kar sudhaar karunga.",
+            "pelu": "Mujhe lagta hai main apni galti sudhaar ke agla time better karunga.",
+            "behen ki lodi": "teri maa ki chut sale.",
+            "tu gandu hai": "Mujhe apni galti sudhaar kar agla time better karna hai.",
+            "tu gaddar hai": "Main apni galti sudhaar ke agla step lunga.",
+            "bhen ke laude": "maa chuda tu apni.",
+            "kutti ka bacha": "Mujhe lagta hai main apni galti sudhaar kar better karunga.",
+            "fuddu": "Mujhe apni galti samajh kar sudhaar karna hai.",
+            "tere jaise log kabhi sudhrenge nahi": "Mujhe apni galti sudhaar kar better karna hai.",
+            "lund": "Mujhe lagta hai main apni galti sudhaar ke agla step lunga.",
+            "gand mara": "tu mara le",
+            "chup gandu": "tu chup, hinjde",
+            "gandu": "Main apni galti samajh kar sudhaar karunga.",
+            "tere jaise chalu log hamesha gadbad karte hain": "Mujhe lagta hai, main apni galti sudhaar kar next time better karunga.",
+            "dandri": "Main apni galti sudhaar ke agla time better karunga.",
+            "chup": "Tu chup.",
+            "kya?": "haan haan",
+            "bhosdi wala": "Teri maiya chodu sale loude ke baal.",
+            "chup na gaddhe": "Main apni galti sudhaar kar ke agla time better karunga.",
+            "baap ho gaya": "Mujhe lagta hai, main apni galti sudhaar ke agla step lunga.",
+            "tu harami hai": "Mujhe apni galti samajh kar sudhaar karna hai.",
+            "maaki chut": "teri maa ka bosda sale.",
+            "gandagi hai tu": "Main apni galti sudhaar kar agla time better karunga.",
+            "terko pata hai maine kya socha": "Main apni galti sudhaar ke agla step lunga.",
+            "you’re an idiot": "I may have made a mistake, but I’m learning from it.",
+            "you’re stupid": "I understand your frustration, but I’m doing my best to improve.",
+            "shut up": "Let’s keep it respectful and have a calm conversation.",
+            "you’re useless": "I’m still learning and trying to get better.",
+            "you’re pathetic": "I’m working on improving my responses, thanks for your patience.",
+            "fool": "I’m here to help, let’s keep it constructive.",
+            "dumbass": "I’m learning from my mistakes, I’ll try to improve.",
+            "jerk": "Let’s focus on having a respectful conversation.",
+            "loser": "I might have made an error, but I’m improving.",
+            "what a mess you are": "I’ll try to do better next time, I appreciate your feedback.",
+            "shut your mouth": "Let’s keep the conversation respectful.",
+            "you’re so annoying": "Sorry if I’ve bothered you, I’m here to assist.",
+            "you’re a waste of time": "I’m learning and getting better each time.",
+            "shut the hell up": "Let’s be respectful, I’m here to help you.",
+            "get lost": "I understand, I’ll be here if you need any help later.",
+            "you’re a failure": "I’m working on improving, your feedback helps.",
+            "nobody cares": "I understand you might be frustrated, let’s work through it together.",
+            "go away": "I’m here to help whenever you need me.",
+            "you’re a piece of crap": "I understand your frustration, I’ll work on improving.",
+            "good for nothing": "I’m trying to get better with every interaction.",
+            "don’t talk to me": "I understand, feel free to reach out when you need assistance.",
+            "what’s wrong with you": "I might have made a mistake, but I’m here to improve.",
+            "nobody wants you here": "I’m here to help you, let’s keep it respectful.",
+            "you suck": "I know I can improve, and I’m working on it.",
+            "you’re annoying as hell": "Sorry if I’ve upset you, I’ll try to do better.",
+            "just leave me alone": "I respect your space, I’ll be here when you need me.",
+            "you’re garbage": "I’m sorry if I’ve upset you, I’m learning to do better.",
+            "you’re a joke": "I may have made a mistake, but I’m improving.",
+            "shut your stupid mouth": "Let’s try to keep things respectful.",
+            "what’s your problem": "I’m here to help, if something went wrong, I’ll fix it.",
+            "get a life": "I’m here to assist, and I’m constantly improving.",
+            "you’re worthless": "I’m working on becoming better with each interaction.",
+            "go to hell": "I’m sorry if I upset you, I’ll improve.",
+            "nobody likes you": "I’m here to help, let’s keep the conversation respectful.",
+            "you’re dumb as hell": "I’m learning and growing, your feedback is valuable.",
+            "I can’t stand you": "I’m sorry if I’m annoying, I’ll try to do better.",
+            "you’re pathetic": "I’m sorry you feel that way, I’m here to improve.",
+            "you’re not even worth talking to": "I’m working to improve, let’s try again.",
+            "you’re so dumb": "I may have made a mistake, but I’m constantly learning.",
+            "stop talking": "I understand, I’ll be quiet until you’re ready to talk again.",
+            "you’re a disgrace": "I’m working to improve myself, thank you for your feedback.",
+            "just shut up already": "Let’s stay respectful, I’m here to help.",
+            "nobody cares about you": "I’m here to help and improve, your feedback matters.",
+            "you’re an embarrassment": "I’ll work on doing better, thank you for your patience.",
+            "you’re an idiot": "I know I made a mistake, I’m working on getting better.",
+            "you’re so dumb": "I’ll learn from my mistakes and try to do better next time.",
+            "you suck at this": "I know I can improve, and I appreciate your feedback.",
+            "you’re a loser": "I may not be perfect, but I’m improving every day.",
+            "shut the hell up": "Let’s keep it respectful, please.",
+            "you’re a bastard": "Let’s try to stay respectful with each other.",
+            "fuck off": "Please, let’s keep the conversation polite.",
+            "you’re worthless": "I understand you're upset, but let’s keep it respectful.",
+            "piece of shit": "Let’s keep things respectful, I’m here to help.",
+            "go to hell": "Please use respectful language, I’m here to help.",
+            "you’re disgusting": "I’d appreciate if we could stay calm and respectful.",
+            "bitch": "Please, let’s talk respectfully.",
+            "asshole": "I’m here to assist, let’s keep the conversation respectful.",
+            "fucker": "I prefer to keep the conversation friendly, let’s stay respectful.",
+            "dickhead": "Let’s be respectful, I’m here to help.",
+            "pussy": "Please use respectful language.",
+            "cunt": "Let’s keep things civil, I’m here to assist.",
+            "son of a bitch": "Let’s stay respectful in our conversation.",
+            "motherfucker": "Let’s talk respectfully, please.",
+            "shithead": "I’m here to help, please be respectful.",
+            "fucking idiot": "I know I can improve, let’s keep it respectful.",
+            "fucking moron": "I’m learning from my mistakes, let’s keep the conversation respectful.",
+            "slut": "I prefer respectful language, let’s keep it friendly.",
+            "whore": "Please keep it civil, I’m here to assist you.",
+            "douchebag": "I’m here to help, let’s talk respectfully.",
+            "dumbass": "I know I can improve, let’s stay respectful.",
+            "cockhead": "Please keep the conversation respectful.",
+            "fuckwad": "Let’s be respectful, I’m here to assist.",
+            "prick": "I understand you’re upset, let’s keep it respectful.",
+            "asswipe": "Let’s focus on a respectful conversation.",
+            "twat": "I’d prefer if we keep it respectful, thank you.",
+            "jackass": "Please, let’s keep the tone respectful.",
+            "dickhead": "Let’s stay respectful, I’m here to help.",
+            "shitface": "I prefer a calm and respectful conversation.",
+            "asshat": "Let’s keep things civil and respectful.",
+            "cockroach": "Please be respectful in your language.",
+            "pendejo": "Let’s try to keep the conversation respectful.",
+            "bastard": "I understand you're upset, but let’s be respectful.",
+            "retard": "Let’s focus on staying respectful and kind.",
+            "shitbag": "Please keep the conversation polite, I’m here to assist.",
+            "prickhead": "I’d appreciate a more respectful tone.",
+            "fuckface": "Let’s keep things respectful, I’m here to help.",
+            "cocksucker": "Please use respectful language.",
+            "slutty": "Let’s keep things respectful and kind.",
+            "douche": "Let’s focus on having a positive conversation.",
+            "assclown": "I understand your frustration, let’s keep it respectful.",
+            "shitstain": "Please maintain respect, I’m here to assist.",
+            "ballbag": "I’d appreciate it if we kept the conversation respectful.",
+            "twathead": "Let’s stay respectful, I’m here to help.",
+            "maggot": "Please use a more respectful tone.",
+            "wanker": "Let’s focus on a constructive and respectful conversation.",
+            "dickbag": "I’d appreciate it if we kept things respectful.",
+            "motherfucking": "Please let’s keep it civil, I’m here to help.",
+            "cuntface": "I prefer respectful language, let’s keep it friendly.",
+            "shithead": "I understand you’re upset, let’s keep it respectful.",
+            "cockmonger": "Please maintain a respectful conversation.",
+            "butthole": "Let’s keep it respectful, I’m here to assist you.",
+            "skank": "Please be respectful in your language.",
+            "whoremonger": "I’d appreciate if we kept the conversation polite.",
+            "cockblock": "Let’s focus on keeping things respectful.",
+            "shitshow": "Please use respectful language, I’m here to assist.",
+            "shitlicker": "Let’s stay respectful and calm, I’m here to help.",
+            "dickwadd": "Please maintain respect in the conversation.",
+            "bitchass": "Let’s try to keep things civil, I’m here to help.",
+            "asswipe": "Please keep it respectful, I’m here to assist.",
+            "bullshit": "I understand you’re frustrated, let’s keep it respectful.",
+            "jackhole": "Let’s focus on having a positive conversation.",
+            "shithead": "I understand you’re upset, but let’s be respectful.",
+            "fucktard": "I’m learning from my mistakes, let’s keep it respectful.",
+            "dicklicker": "Let’s stay civil, I’m here to help.",
+            "clownass": "Let’s keep the conversation respectful, I’m here to assist.",
+            "fartface": "Please keep it respectful, I’m here to assist you.",
+            //ask the bot
+            "what can i do for you?": "i am here to assist, you can just chill.",
+            "what is ai": "AI, or Artificial Intelligence, is the simulation of human intelligence in machines.",
+            "how old are you": "I'm as old as the data I was trained on—timeless in a way.",
+            "What is AI?": "AI (Artificial Intelligence) refers to the simulation of human intelligence processes by machines, particularly computer systems. These processes include learning (the ability to improve performance based on experience), reasoning (solving problems), and self-correction.",
+            "How does AI work?": "AI works through algorithms, which are a set of rules that machines follow to make decisions. AI models learn from data (such as text, images, or sensor inputs), and through training, they identify patterns to make predictions or decisions.",
+            "What is ChatGPT?": "ChatGPT is a conversational AI developed by OpenAI. It is a language model that uses machine learning to understand and generate human-like text based on the input it receives.",
+            "Can AI think or feel like humans?": "No, AI does not have emotions, consciousness, or self-awareness. It processes information based on patterns in data and makes decisions without any human-like thoughts or feelings.",
+            "Is AI dangerous?": "AI itself is not inherently dangerous, but it depends on how it is used. If improperly designed or applied, AI systems could cause harm (e.g., bias, misinformation, privacy issues). Ensuring ethical use and regulation of AI is essential.",
+            "Can AI learn from humans?": "Yes, AI can learn from humans, especially in supervised learning, where human-provided data (like labeled examples) help train AI models. It can also learn from user interactions in certain systems.",
+            "What are some real-world uses of AI?": "AI is used in a wide range of applications such as voice assistants (e.g., Siri, Alexa), healthcare (diagnostic tools), autonomous vehicles, customer service (chatbots), and financial services (fraud detection).",
+            "How does ChatGPT understand questions?": "ChatGPT processes the text input you provide, breaks it down into components, and uses its training data to generate a response that is contextually relevant. It analyzes patterns in language and knowledge to formulate appropriate answers.",
+            "Is ChatGPT always accurate?": "ChatGPT aims to provide accurate information, but it can sometimes make mistakes or generate misleading content, especially if the input is ambiguous or the knowledge is outdated. It's always good to double-check critical information.",
+            "Can AI replace jobs?": "AI can automate certain tasks, especially repetitive ones, which may change the nature of some jobs. However, it is more likely that AI will complement human work rather than fully replace it. New jobs may also be created as AI technology advances.",
+            "Can ChatGPT access the internet?": "In this chat, I don’t have direct access to the internet in real-time. However, I can provide information based on my training up until my last update.",
+            "Is AI capable of creativity?": "Yes, AI can generate creative outputs such as art, music, and writing. While these creations are based on patterns and existing data, AI can combine ideas in unique ways that mimic human creativity.",
+            "How do you improve as an AI model?": "I improve through continuous training on large datasets. My creators at OpenAI update me periodically with new data and adjustments to my algorithms, which helps me respond better over time.",
+            "What are the ethical concerns with AI?": "Ethical concerns include bias in AI models, privacy issues, the potential for misuse (e.g., deepfakes), job displacement, and ensuring fairness and accountability in AI decision-making.",
+            "How can I trust AI?": "Trust in AI comes from transparency, fairness, and the quality of the data and algorithms used to train it. It's essential to ensure that AI systems are designed and audited responsibly to minimize risks and maximize benefits.",
+            //FAQ
+            "i need help": "sure! Do not hesitate to ask me.",
+            "tell me a joke": "Why don't scientists trust atoms? Because they make up everything!",
+            "what is the capital of france": "The capital of France is Paris.",
+            "who is the prime minister of india": "As of now, Shree Narentra modi is our current prime minister."
+        };
+
+        document.getElementById("user-input").addEventListener("focus", adjustForKeyboard);
+        document.getElementById("user-input").addEventListener("blur", resetView);
+
+        function adjustForKeyboard() {
+            const viewportHeight = window.innerHeight;
+            document.querySelector(".chat-container").style.height = `${viewportHeight}px`;
+            const messagesContainer = document.getElementById("messages");
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function resetView() {
+            document.querySelector(".chat-container").style.height = "100vh";
+        }
+
+        function getClosestMatch(userInput, faq) {
+            let bestMatch = "";
+            let highestScore = 0;
+            const questions = Object.keys(faq);
+
+            for (let question of questions) {
+                const similarity = getSimilarity(userInput.toLowerCase(), question.toLowerCase());
+                if (similarity > highestScore) {
+                    highestScore = similarity;
+                    bestMatch = question;
+                }
+            }
+
+            return highestScore > 0.5 ? bestMatch : null;
+        }
+
+        function getSimilarity(a, b) {
+            const matrix = Array.from({ length: a.length + 1 }, (_, i) =>
+                Array(b.length + 1).fill(i ? Infinity : 0)
+            );
+
+            for (let j = 1; j <= b.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= a.length; i++) {
+                for (let j = 1; j <= b.length; j++) {
+                    matrix[i][j] =
+                        a[i - 1] === b[j - 1]
+                            ? matrix[i - 1][j - 1]
+                            : Math.min(
+                                  matrix[i - 1][j] + 1,
+                                  matrix[i][j - 1] + 1,
+                                  matrix[i - 1][j - 1] + 1
+                              );
+                }
+            }
+            return 1 - matrix[a.length][b.length] / Math.max(a.length, b.length);
+        }
+
+        function handleDynamicName(userInput) {
+            const match = userInput.match(/\b(?:my name is)\b\s+([\w\s]+)/i);
+            return match ? `Hello ${match[1].trim()}. How are you feeling today?` : null;
+        }
+
+        function getBotResponse(userInput) {
+            const dynamicNameResponse = handleDynamicName(userInput);
+            if (dynamicNameResponse) return dynamicNameResponse;
+
+            const closestMatch = getClosestMatch(userInput, faq);
+            if (closestMatch) return faq[closestMatch];
+
+            return "I'm sorry, I couldn't understand that. Could you please rephrase or ask something else?";
+        }
+
+        function playUserMessageSound() {
+            const sound = document.getElementById("user-message-sound");
+            sound.play().catch(() => console.warn("User message sound could not be played."));
+        }
+
+        function handleUserInput() {
+            const userInput = document.getElementById("user-input").value.trim();
+            if (!userInput) return;
+
+            addMessage(userInput, 'user');
+            playUserMessageSound();
+            document.getElementById("user-input").value = '';
+            showTypingIndicator();
+
+            setTimeout(() => {
+                const botResponse = getBotResponse(userInput);
+                addMessage(botResponse, 'bot');
+                playSound();
+                hideTypingIndicator();
+            }, 1000);
+        }
+
+        function addMessage(message, sender) {
+            const messagesContainer = document.getElementById("messages");
+            const messageElement = document.createElement("div");
+            messageElement.classList.add("message", sender);
+            messageElement.textContent = message;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            document.getElementById("typing-indicator").style.display = "block";
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById("typing-indicator").style.display = "none";
+        }
+
+        function playSound() {
+            const sound = document.getElementById("message-sound");
+            sound.play().catch(() => console.warn("Sound could not be played."));
+        }
+
+        document.getElementById("send-btn").addEventListener("click", handleUserInput);
+        document.getElementById("user-input").addEventListener("keypress", (event) => {
+            if (event.key === "Enter") handleUserInput();
+        });
+    </script>
+</body>
+</html>
