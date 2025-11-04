@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bapi's Access Protocol v4.0 - FINAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script> 
+    <style>
+        /* Define the custom fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&family=Poppins:wght@400;700&display=swap');
+
+        /* Custom configuration for the site */
+        :root {
+            --hacker-color: #00ff41; /* Neon Green */
+            --hacker-glow: #0aff3d;
+            --reveal-color-a: #ff00ff; /* Neon Pink */
+            --reveal-color-b: #00ffff; /* Neon Cyan */
+            --dark-bg: #020b0f;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--hacker-color);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+            transition: background-color 1s ease-in-out;
+            padding: 1rem;
+        }
+
+        /* Initial Hacker Theme Container (Stage 1-3) */
+        #app-container {
+            width: 90%;
+            max-width: 800px;
+            padding: 2rem;
+            border: 2px solid var(--hacker-color);
+            box-shadow: 0 0 10px var(--hacker-glow);
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        
+        /* CRT Scanlines and Glow Effect */
+        #crt-overlay {
+            pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 99;
+            /* Scanlines effect */
+            background: 
+                repeating-linear-gradient(
+                    0deg, 
+                    rgba(0, 0, 0, 0.15), 
+                    rgba(0, 0, 0, 0.3) 1px, 
+                    transparent 1px, 
+                    transparent 2px
+                );
+        }
+
+        /* Typing Cursor Blink Animation */
+        .typing-cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+            margin-left: 2px;
+            font-weight: bold;
+        }
+        @keyframes blink {
+            50% { color: transparent }
+        }
+
+        /* Glitch Animation (Enhanced Glitch using CSS filters/clip-path) */
+        .glitch-active {
+            animation: glitch-anim-advanced 0.5s infinite;
+            filter: drop-shadow(0 0 5px var(--hacker-color));
+        }
+
+        @keyframes glitch-anim-advanced {
+            0% { clip-path: inset(45% 0 15% 0); transform: translateX(-5px); }
+            20% { clip-path: inset(90% 0 0% 0); transform: translateX(5px); }
+            40% { clip-path: inset(5% 0 90% 0); transform: translateX(-5px); }
+            60% { clip-path: inset(70% 0 5% 0); transform: translateX(5px); }
+            80% { clip-path: inset(10% 0 80% 0); transform: translateX(-5px); }
+            100% { clip-path: inset(30% 0 30% 0); transform: translateX(5px); }
+        }
+        
+        /* Neon Glow Effect for Text/Buttons */
+        .neon-glow-green {
+            text-shadow: 
+                0 0 4px var(--hacker-glow), 
+                0 0 8px var(--hacker-glow);
+        }
+        .neon-glow-yellow {
+            text-shadow: 
+                0 0 4px #ffff00, 
+                0 0 8px #ffeb3b; 
+        }
+
+        /* Neon Button Styling */
+        .neon-button {
+            border: 2px solid var(--hacker-color);
+            box-shadow: 0 0 8px var(--hacker-color) inset;
+            transition: all 0.3s;
+            text-shadow: 0 0 5px var(--hacker-glow);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+        .neon-button:hover {
+            background-color: var(--hacker-color);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--hacker-color), 0 0 30px var(--hacker-color);
+            transform: translateY(-2px);
+        }
+
+        /* Final Reveal Theme (Stage 4-5) */
+        .reveal-theme {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #1a082b, #4b0082) !important; /* Deep Purple */
+            color: var(--reveal-color-a);
+            border-color: var(--reveal-color-a) !important;
+            box-shadow: 0 0 20px var(--reveal-color-a), 0 0 40px var(--reveal-color-b) !important;
+            transition: all 1s ease-in-out;
+        }
+        .reveal-text {
+            font-family: 'Poppins', sans-serif; /* Use Poppins for body text */
+            text-shadow: 
+                0 0 5px var(--reveal-color-a), 
+                0 0 15px var(--reveal-color-b);
+        }
+        .reveal-button {
+            background: linear-gradient(45deg, var(--reveal-color-a), var(--reveal-color-b));
+            border: none;
+            color: var(--dark-bg);
+            box-shadow: 0 0 10px var(--reveal-color-a), 0 0 20px var(--reveal-color-b);
+            transition: all 0.4s;
+            font-weight: bold;
+        }
+        .reveal-button:hover {
+            box-shadow: 0 0 15px var(--reveal-color-a), 0 0 30px var(--reveal-color-b);
+            transform: scale(1.05);
+        }
+
+        /* Confetti Canvas Styling - (Note: The canvas element is used, but the library draws on the global window canvas context) */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        
+        /* Style for Page 5 Content (Bonus) */
+        .memory-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--reveal-color-b);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            /* cursor: pointer; // Removed since the button is the control */ 
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .memory-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+        }
+
+        /* === Dynamic Image Ratio Adjustment (FINAL FIX) === */
+        #gf-profile img {
+            object-fit: contain; /* Ensures the image is fully visible */
+            height: auto; 
+            max-width: 100%; /* Ensures it scales down */
+            display: block; /* Removes any inline spacing issues */
+            margin: 0 auto; /* Center the image */
+        }
+        /* Container adjustment for no extra space */
+        #gf-profile .image-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem; /* Small padding inside the box */
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+
+        /* === NEW NEON HEART ANIMATION STYLES === */
+        #neon-heart-anim {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            margin: 1rem auto 0.5rem auto; /* Center the heart and position it above the name */
+            transform: rotate(-45deg); /* Rotate to form heart shape */
+            animation: heartPulseGlow 5s infinite ease-in-out; /* 5s loop as requested */
+            z-index: 10;
+        }
+
+        #neon-heart-anim::before,
+        #neon-heart-anim::after {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #ff0077; /* Deep Pink */
+            border-radius: 50%;
+            /* Apply neon glow */
+            box-shadow: 0 0 5px #ff0077, 0 0 10px #ff0077, 0 0 15px #ff00ff;
+        }
+
+        #neon-heart-anim::before {
+            top: -10px;
+            left: 0;
+        }
+
+        #neon-heart-anim::after {
+            top: 0;
+            left: 10px;
+        }
+
+        @keyframes heartPulseGlow {
+            0% {
+                opacity: 0.5;
+                transform: scale(0.9) rotate(-45deg) translateY(0);
+                box-shadow: 0 0 5px #ff0077;
+            }
+            25% {
+                opacity: 1;
+                transform: scale(1.1) rotate(-45deg) translateY(-5px); /* Upward float */
+                box-shadow: 0 0 10px #ff0077, 0 0 20px #ff00ff;
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.95) rotate(-45deg) translateY(0);
+                box-shadow: 0 0 5px #ff0077;
+            }
+            75% {
+                opacity: 1;
+                transform: scale(1.05) rotate(-45deg) translateY(5px); /* Downward float */
+                box-shadow: 0 0 10px #ff0077, 0 0 20px #ff00ff;
+            }
+            100% {
+                opacity: 0.5;
+                transform: scale(0.9) rotate(-45deg) translateY(0);
+                box-shadow: 0 0 5px #ff0077;
+            }
+        }
+        /* ============================================== */
+
+        /* === OTHER ANIMATIONS === */
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .animate-entry {
+            animation: fadeInScale 0.7s ease-out forwards;
+        }
+
+        @keyframes buttonPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 8px var(--hacker-color);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 15px var(--hacker-color), 0 0 30px var(--hacker-color);
+            }
+        }
+        .animate-pulse-on-load {
+            animation: buttonPulse 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="transition-colors duration-1000">
+
+    <div id="crt-overlay"></div>
+
+    <div id="app-container" class="rounded-xl transition-all duration-1000">
+        
+        <div id="terminal-output" class="text-lg space-y-2 overflow-auto max-h-[350px] md:max-h-[500px] p-2">
+            </div>
+
+        <div id="input-section" class="mt-4 hidden opacity-0">
+            <label for="access-code" class="text-sm block mb-1 neon-glow-green">ENTER ACCESS CODE:</label>
+            <div class="flex items-center">
+                <span class="text-xl mr-2">&gt;</span>
+                <input type="text" id="access-code" class="flex-grow bg-transparent border-b-2 border-green-500 focus:outline-none px-2 py-1 text-xl font-mono" placeholder="********" onkeydown="handleInput(event)">
+                <button type="button" onclick="handleButtonClick(() => handleInput({key: 'Enter'}))" class="neon-button ml-3 px-4 py-1 text-sm rounded">ENTER</button>
+            </div>
+        </div>
+
+        <div id="interaction-section" class="mt-6 hidden grid grid-cols-1 gap-4 sm:grid-cols-3 opacity-0">
+            <button type="button" onclick="handleButtonClick(() => handleInteraction('run.birthday', 'hidden'))" class="neon-button p-4 text-xl rounded-lg">run.malware()</button>
+            <button type="button" onclick="handleButtonClick(() => handleInteraction('scan.memory', '404'))" class="neon-button p-4 text-xl rounded-lg">scan.memory()</button>
+            <button type="button" onclick="handleButtonClick(() => handleInteraction('launch_surprise', 'correct'))" class="neon-button p-4 text-xl rounded-lg">launch_surprise()</button>
+        </div>
+
+        <div id="reveal-content" class="mt-6 text-center hidden p-4 opacity-0">
+            </div>
+
+        <div id="bonus-content" class="mt-6 hidden p-4 reveal-text text-left opacity-0">
+            </div>
+    </div>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="girlfriend-modal" class="fixed inset-0 bg-black bg-opacity-95 hidden z-[10000] items-center justify-center transition-opacity duration-300 opacity-0 reveal-text">
+        <div class="bg-dark-bg reveal-theme p-8 rounded-xl shadow-2xl max-w-sm text-center border-4 border-reveal-color-a">
+            <h3 class="text-3xl font-orbitron mb-4 text-pink-300">🚨 WARNING 🚨</h3>
+            <p class="text-xl mb-6 text-cyan-300 font-poppins">
+                We found a girlfrien for you! 
+                Do you want to see the profile?
+            </p>
+            
+            <div id="modal-buttons" class="space-x-4 flex justify-center">
+                <button onclick="handleButtonClick(showGirlfriendProfile)" class="reveal-button px-4 py-2 text-lg rounded-lg font-orbitron">
+                    ✅ Yes, Show Profile
+                </button>
+                <button onclick="handleButtonClick(requestToView)" class="reveal-button px-4 py-2 text-lg rounded-lg font-orbitron" 
+                        style="background: linear-gradient(45deg, #cc0000, #ff5733); box-shadow: 0 0 15px #ff0000;">
+                    ❌ No, Exit
+                </button>
+            </div>
+
+            <div id="gf-profile" class="mt-6 hidden">
+                <h4 class="text-2xl font-orbitron text-purple-300 mb-4">MATCH FOUND!</h4>
+                
+                <div id="neon-heart-anim"></div>
+
+                <p class="text-xl text-yellow-400 mb-4">Miss Ankit, aka Swambhuba<span class="text-3xl">😊</span></p>
+                
+                <div class="image-container">
+                    <img src="https://i.ibb.co/Dg5ByRzK/Screenshot-20251104-235637.jpg" alt="Swambuba Profile" class="opacity-100">
+                </div>
+                
+                <button onclick="handleButtonClick(closeProfileAndExit)" class="reveal-button mt-6 px-4 py-2 text-lg rounded-lg font-orbitron">
+                    Exit
+                </button>
+            </div>
+            
+            <div id="request-view-message" class="mt-6 hidden">
+                <p class="text-xl text-red-400 font-poppins">Request Denied! You must view the profile first!</p>
+                <button onclick="handleButtonClick(showGirlfriendProfile)" class="reveal-button mt-4 px-4 py-2 text-lg rounded-lg font-orbitron">
+                    Fine, Show Profile
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- CONSTANTS & STATE ---
+        const TYPING_SPEED_MS = 50;
+        const TERMINAL_OUTPUT = document.getElementById('terminal-output');
+        const INPUT_SECTION = document.getElementById('input-section');
+        const INTERACTION_SECTION = document.getElementById('interaction-section');
+        const REVEAL_CONTENT = document.getElementById('reveal-content');
+        const BONUS_CONTENT = document.getElementById('bonus-content');
+        const ACCESS_CODE_INPUT = document.getElementById('access-code');
+        const BODY = document.body;
+        const APP_CONTAINER = document.getElementById('app-container');
+
+        const STAGES = { INTRO: 1, SCANNING: 2, INTERACTION: 3, REVEAL: 4, BONUS: 5 };
+        let currentStage = STAGES.INTRO;
+        let ambientSynth = null;
+        let noiseSynth = null; // CRT static/glitch sound (should stop before Stage 3)
+        let typingSynth = null;
+        let clickSynth = null; 
+        let guitarSynth = null; 
+        let guitar1Player = null; // Player for guitar1.mp3
+        let gfMusicPlayer = null; 
+        let isAudioReady = false; 
+        
+        // --- ANIMATION KILL SWITCH LOGIC ---
+        function killAnimations() {
+            console.log("Spacebar pressed. Cancelling all animations!");
+            
+            // Remove classes that trigger animations/pulses on key elements
+            document.querySelectorAll('.animate-entry, .animate-pulse-on-load, .glitch-active, .typing-cursor').forEach(el => {
+                el.classList.remove('animate-entry', 'animate-pulse-on-load', 'glitch-active', 'typing-cursor');
+            });
+
+            // Prevent further typing animation (by setting speed extremely low)
+            window.TYPING_SPEED_MS = 1; 
+
+            // If input is disabled due to glitch, re-enable it (Stage 1)
+            const input = document.getElementById('access-code');
+            if (input) input.disabled = false;
+        }
+
+        // Global Event Listener for Spacebar
+        document.addEventListener('keydown', (event) => {
+            // Check for spacebar key (keyCode 32 or key ' ')
+            if (event.code === 'Space' || event.key === ' ') {
+                event.preventDefault(); // Stop spacebar from scrolling
+                killAnimations();
+            }
+        });
+
+
+        // --- AUDIO SETUP (Tone.js) ---
+        /** Initializes all synths and starts the persistent ambient sound. */
+        function initAmbientSound() {
+            // Setup synths first
+            ambientSynth = new Tone.Synth({
+                oscillator: { type: "sawtooth" },
+                envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.5 }
+            }).toDestination();
+            ambientSynth.volume.value = -20; 
+
+            noiseSynth = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.001, decay: 0.5, sustain: 0.5, release: 0.5 }
+            }).toDestination();
+            noiseSynth.volume.value = -30; // The CRT static/glitch sound
+            
+            typingSynth = new Tone.MembraneSynth({
+                pitchDecay: 0.005,
+                octaves: 1,
+                envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.1 }
+            }).toDestination();
+            typingSynth.volume.value = -20;
+
+            clickSynth = new Tone.PluckSynth({
+                attackNoise: 1,
+                dampening: 4000,
+                release: 0.05
+            }).toDestination();
+            clickSynth.volume.value = -15;
+
+            // Setup the player for the GF reveal music
+            gfMusicPlayer = new Tone.Player({
+                url: "music1.mp3", // The music file you want to play
+                loop: true, 
+                volume: -15, 
+            }).toDestination();
+            
+            // Player for guitar1.mp3
+            guitar1Player = new Tone.Player({
+                url: "guitar1.mp3",
+                loop: false,
+                volume: -10, 
+            }).toDestination();
+
+
+            // Start the Tone.Transport and the continuous loops
+            Tone.context.resume().then(() => {
+                isAudioReady = true;
+
+                // 1. Terminal Hum Loop
+                const loop = new Tone.Loop(time => {
+                    ambientSynth.triggerAttackRelease("C2", "4n", time, 0.1);
+                }, "2n").start(0);
+                
+                // 2. CRT Static/Glitch Noise
+                noiseSynth.triggerAttack(); 
+                
+                Tone.Transport.start();
+            }).catch(error => {
+                console.error("Tone.js context resume failed:", error);
+            });
+        }
+
+        /** Plays a generic UI click sound. */
+        function playClickSfx() {
+            if (!isAudioReady) return;
+            Tone.context.resume(); 
+            clickSynth.triggerAttackRelease(Math.random() > 0.5 ? "G5" : "E5", "32n");
+        }
+        
+        /** Wrapper function to play sound and then execute the provided callback. */
+        function handleButtonClick(callback) {
+            playClickSfx();
+            callback();
+        }
+
+        /** Plays the short, triumphant synth riff for the reveal. */
+        function playGuitarRiff() {
+            if (!isAudioReady) return;
+            Tone.context.resume(); 
+
+            if (!guitarSynth) {
+                guitarSynth = new Tone.PolySynth(Tone.AMSynth, {
+                    volume: -5,
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.5 },
+                    filterEnvelope: { attack: 0.005, decay: 0.1, sustain: 0.5, release: 0.5, baseFrequency: 200, octaves: 4 }
+                }).toDestination();
+            }
+
+            const now = Tone.now();
+            guitarSynth.triggerAttackRelease(["C4", "E4", "G4"], "16n", now);
+            guitarSynth.triggerAttackRelease(["D4", "F#4", "A4"], "16n", now + 0.15);
+            guitarSynth.triggerAttackRelease(["E4", "G4", "B4", "C5"], "8n", now + 0.3);
+        }
+
+        /** Toggles playback of guitar1.mp3 and updates the pause button. */
+        function toggleGuitarPlayback() {
+            if (!isAudioReady || !guitar1Player) return;
+            Tone.context.resume();
+
+            const pauseButton = document.getElementById('guitar-pause-button');
+            const playerState = guitar1Player.state;
+            
+            // Wait for player to be loaded before trying to play
+            if (!guitar1Player.loaded) {
+                pauseButton.textContent = '⏳ Loading...';
+                guitar1Player.load().then(() => {
+                    // Try to play again once loaded
+                    if (pauseButton.textContent === '⏳ Loading...') {
+                        toggleGuitarPlayback();
+                    }
+                }).catch(e => {
+                     if (pauseButton) pauseButton.textContent = '❌ Error';
+                     console.error("Failed to load guitar1.mp3:", e);
+                });
+                return;
+            }
+
+            if (playerState === 'started') {
+                // Currently playing -> Pause
+                guitar1Player.stop(); 
+                if (pauseButton) {
+                    pauseButton.textContent = '▶️ Play';
+                    pauseButton.classList.remove('bg-red-500');
+                    pauseButton.classList.add('bg-green-500');
+                }
+            } else {
+                // Stopped or Paused -> Play
+                
+                // NEW FIX: Stop GF music if it is somehow still running when the user tries to play the guitar clip
+                if (gfMusicPlayer && gfMusicPlayer.state === 'started') {
+                    gfMusicPlayer.stop();
+                }
+                
+                guitar1Player.start(Tone.now(), 0); // Start from beginning (offset 0)
+                if (pauseButton) {
+                    pauseButton.textContent = '⏸️ Pause';
+                    pauseButton.classList.remove('bg-green-500');
+                    pauseButton.classList.add('bg-red-500');
+                }
+            }
+        }
+
+        /** Plays the specific GF reveal music. */
+        function playGirlfriendMusic() {
+            if (!isAudioReady || !gfMusicPlayer) return;
+            Tone.context.resume(); 
+            
+            // NEW FIX: Stop guitar1Player to prevent collision
+            if (guitar1Player && guitar1Player.state === 'started') {
+                guitar1Player.stop();
+                // Update button state visually
+                const pauseButton = document.getElementById('guitar-pause-button');
+                if (pauseButton) {
+                    pauseButton.textContent = '▶️ Play';
+                    pauseButton.classList.remove('bg-red-500');
+                    pauseButton.classList.add('bg-green-500');
+                }
+            }
+
+            // Start playing the music
+            if (gfMusicPlayer.loaded && gfMusicPlayer.state !== 'started') {
+                gfMusicPlayer.start();
+            }
+        }
+        
+        /** Plays a jarring, descending tone sequence for errors. */
+        function playErrorSfx() {
+            if (!isAudioReady) return;
+            Tone.context.resume(); 
+            
+            const errorOsc = new Tone.Oscillator({
+                frequency: "A4",
+                type: "sawtooth"
+            }).toDestination();
+            errorOsc.volume.value = -10;
+            
+            const now = Tone.now();
+            errorOsc.start(now); 
+            
+            errorOsc.frequency.linearRampToValueAtTime("A4", now);
+            errorOsc.frequency.linearRampToValueAtTime("C#3", now + 0.15);
+            errorOsc.frequency.linearRampToValueAtTime("C2", now + 0.3);
+            
+            errorOsc.stop(now + 0.35); 
+            setTimeout(() => errorOsc.dispose(), 500);
+        }
+
+        /** Initializes Confetti with general party theme. */
+        function startConfettiBurst(duration = 500, particleCount = 100) {
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+            const particleColors = [
+                '#ff00ff', '#00ffff', '#00ff41', '#ffffff', '#ffeb3b', '#cc00ff'
+            ];
+            
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(particleCount * particleRatio),
+                    colors: particleColors
+                }));
+            }
+
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
+        
+        /** Initializes Confetti with heart shapes for the GF reveal (Continuous stream). */
+        function loveConfetti() {
+            const defaults = { 
+                startVelocity: 30, 
+                spread: 360, 
+                ticks: 60, 
+                zIndex: 9999,
+                particleCount: 150, 
+                shapes: ['heart'], // KEY: Use heart shapes
+                colors: [
+                    '#FF0077', // Deep Pink
+                    '#FF4136', // Red
+                    '#FFFFFF', // White
+                    '#FFB6C1', // Light Pink
+                ]
+            };
+            
+            const end = Date.now() + (3 * 1000); // Animation runs for 3 seconds
+
+            // Function to continuously fire confetti from the sides
+            (function frame() {
+                confetti({
+                    ...defaults,
+                    particleCount: 2, // smaller amount per frame for continuous stream
+                    angle: 60,
+                    origin: { x: 0 } // Fire from left
+                });
+                confetti({
+                    ...defaults,
+                    particleCount: 2, // smaller amount per frame for continuous stream
+                    angle: 120,
+                    origin: { x: 1 } // Fire from right
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+        // ----------------------------------------
+
+
+        // --- TYPING ANIMATION CORE ---
+        /** Simulates terminal text typing effect. */
+        async function typeText(lines, colorClass = 'neon-glow-green') {
+            for (const line of lines) {
+                const p = document.createElement('p');
+                p.classList.add('neon-glow-green', colorClass);
+                TERMINAL_OUTPUT.appendChild(p);
+                TERMINAL_OUTPUT.scrollTop = TERMINAL_OUTPUT.scrollHeight;
+
+                for (let i = 0; i < line.length; i++) {
+                    p.innerHTML = '&gt; ' + line.substring(0, i + 1);
+                    if (i < line.length - 1) {
+                        p.classList.add('typing-cursor');
+                    } else {
+                        p.classList.remove('typing-cursor');
+                    }
+
+                    // Trigger typing sound
+                    if (typingSynth && isAudioReady) {
+                        const now = Tone.now();
+                        const timeOffset = Math.random() * 0.005;
+                        typingSynth.triggerAttackRelease("C5", "32n", now + timeOffset);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, TYPING_SPEED_MS));
+                }
+                
+                // Final scroll and pause after line finishes
+                TERMINAL_OUTPUT.scrollTop = TERMINAL_OUTPUT.scrollHeight;
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            if (TERMINAL_OUTPUT.lastElementChild) {
+                TERMINAL_OUTPUT.lastElementChild.classList.remove('typing-cursor');
+            }
+        }
+
+        // --- STAGE 1 LOGIC ---
+
+        /** Stage 1: Intro Screen */
+        async function startIntro() {
+            TERMINAL_OUTPUT.innerHTML = ''; // Clear the initial click message
+            const introLines = [
+                'Initializing Access Terminal...',
+                'Connecting to secure server...',
+                'User detected: BAPI',
+                'Authorization required'
+            ];
+            await typeText(introLines);
+
+            // ANIMATION CHANGE: Show input section with entry animation
+            INPUT_SECTION.classList.remove('hidden', 'opacity-0');
+            INPUT_SECTION.classList.add('animate-entry');
+            ACCESS_CODE_INPUT.focus();
+        }
+
+        /** Stage 1 -> Stage 2 Transition (Accepts ANY input) */
+        async function handleInput(event) {
+            if (event.key === 'Enter') {
+                const code = ACCESS_CODE_INPUT.value.trim();
+                if (currentStage !== STAGES.INTRO) return;
+
+                // 1. Input Glitch effect
+                document.getElementById('access-code').disabled = true;
+                document.getElementById('access-code').classList.add('glitch-active');
+                
+                // 2. Output success message with Typing Sound
+                const successMessage = `[AUTH_SUCCESS] Code ${code || 'NULL'} accepted. User authenticated.`;
+                await typeText([successMessage], 'neon-glow-yellow');
+
+                // 3. Transition to Stage 2
+                setTimeout(() => {
+                    document.getElementById('access-code').classList.remove('glitch-active'); 
+                    // ANIMATION CHANGE: Hide input immediately after typing, animation finished
+                    INPUT_SECTION.classList.add('hidden');
+                    INPUT_SECTION.classList.remove('animate-entry');
+                    startScanning();
+                }, 800);
+            }
+        }
+
+        // --- STAGE 2 LOGIC ---
+
+        /** Stage 2: Scanning Phase */
+        async function startScanning() {
+            currentStage = STAGES.SCANNING;
+            const scanningLines = [
+                'Scanning personality modules...',
+                'Ego level: 69%',
+                'Guitar skill: Verified 🎸',
+                'Study interest: 404 Not Found',
+                'Searching for girlfriend… still finding',
+            ];
+            await typeText(scanningLines);
+
+            // Add a mock progress bar effect (does not use typeText, so no typing sound here)
+            const progressP = document.createElement('p');
+            progressP.classList.add('neon-glow-green');
+            TERMINAL_OUTPUT.appendChild(progressP);
+
+            for(let i = 0; i <= 100; i += 10) {
+                progressP.innerHTML = `&gt; [${'█'.repeat(i/10)}${'-'.repeat(10 - i/10)}] SCANNING ${i}% COMPLETE...`;
+                TERMINAL_OUTPUT.scrollTop = TERMINAL_OUTPUT.scrollHeight;
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
+
+            // Remove the silent progress line and output the final status with typing sound
+            progressP.remove();
+            await typeText(['[COMPLETE] Scan integrity verified. Protocol ready.']);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            startInteraction();
+        }
+
+        // --- STAGE 3 LOGIC ---
+
+        /** Stage 3: Interaction Section */
+        function startInteraction() {
+            currentStage = STAGES.INTERACTION;
+            
+            // FIX: Stop glitch sound (noiseSynth) and ambient hum (ambientSynth) after Stage 2
+            if (ambientSynth) ambientSynth.dispose();
+            if (noiseSynth) noiseSynth.dispose(); 
+
+            const messageP = document.createElement('p');
+            messageP.innerHTML = '&gt; SYSTEM_READY. Select the Protocol.';
+            messageP.classList.add('neon-glow-green');
+            TERMINAL_OUTPUT.appendChild(messageP);
+            TERMINAL_OUTPUT.scrollTop = TERMINAL_OUTPUT.scrollHeight;
+
+            INTERACTION_SECTION.classList.remove('hidden', 'opacity-0');
+            INTERACTION_SECTION.classList.add('animate-entry', 'animate-pulse-on-load');
+        }
+
+        /** Stage 3 Button Handler */
+        async function handleInteraction(command, type) {
+            if (currentStage !== STAGES.INTERACTION) return;
+
+            const interactionButtons = INTERACTION_SECTION.querySelectorAll('button');
+            interactionButtons.forEach(btn => btn.disabled = true);
+            INTERACTION_SECTION.classList.remove('animate-pulse-on-load'); 
+            
+            await typeText([`Executing: ${command}()`], 'text-white');
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            if (type === 'correct') {
+                await typeText(['WARNING: System Overload! Redirecting to decoding Mode...'], 'text-pink-500');
+                
+                setTimeout(() => {
+                    INTERACTION_SECTION.classList.add('hidden');
+                    INTERACTION_SECTION.classList.remove('animate-entry');
+                    startConfettiBurst(500, 50); 
+                    finalReveal();
+                }, 1500);
+            } else {
+                playErrorSfx(); 
+                let errorMessage;
+                if (type === '404') {
+                    errorMessage = 'ERROR 404: Memory access denied. Private data is locked (for good reason).';
+                } else {
+                    errorMessage = 'ACCESS DENIED: Ego Overload detected. Try next options.';
+                }
+                await typeText([errorMessage], 'text-red-500');
+                
+                interactionButtons.forEach(btn => btn.disabled = false);
+                INTERACTION_SECTION.classList.add('animate-pulse-on-load');
+            }
+        }
+
+        // --- STAGE 4 LOGIC ---
+
+        /** Stage 4: Final Reveal */
+        function finalReveal() {
+            currentStage = STAGES.REVEAL;
+
+            // Ambient/Noise are already stopped in startInteraction() (Stage 3)
+            
+            BODY.classList.add('reveal-theme');
+            APP_CONTAINER.classList.add('reveal-theme');
+            APP_CONTAINER.style.maxWidth = '95%'; 
+
+            TERMINAL_OUTPUT.classList.add('hidden');
+            INTERACTION_SECTION.classList.add('hidden');
+            
+            REVEAL_CONTENT.classList.remove('hidden', 'opacity-0');
+            REVEAL_CONTENT.classList.add('animate-entry');
+
+            playGuitarRiff();
+
+            REVEAL_CONTENT.innerHTML = `
+                <h1 class="text-4xl sm:text-7xl font-bold mb-8 reveal-text font-orbitron">
+                    🎂 HAPPY BIRTHDAY, BAPI 🎂
+                </h1>
+                <div class="reveal-text text-xl space-y-3 font-poppins px-4">
+                    <p class="text-cyan-300">"The Coder. The Reader. The Guitarist. The Legend (in his own mind)."</p>
+                    <p class="text-pink-300"></p>
+                    <p class="text-purple-300 font-orbitron text-sm pt-4">PROTOCOL: CELEBRATION_MODE_ACTIVE</p>
+                </div>
+
+                <button type="button" id="candle-button" onclick="handleButtonClick(blowCandle)" class="reveal-button mt-10 px-8 py-3 text-2xl rounded-full shadow-lg font-orbitron">
+                    Blow Candle 🎂
+                </button>
+            `;
+        }
+
+        /** Final button interaction (Blow Candle) */
+        function blowCandle() {
+            document.getElementById('candle-button').classList.add('hidden');
+
+            playGuitarRiff();
+            startConfettiBurst(1000, 200); 
+
+            const finalMessageDiv = document.createElement('div');
+            finalMessageDiv.classList.add('mt-8', 'text-lg', 'reveal-text', 'font-mono', 'animate-entry'); 
+            finalMessageDiv.innerHTML = `
+                <p class="text-cyan-300">&gt; Mission accomplished. Status: Success.</p>
+                <p class="text-pink-300">&gt; Another year survived. Backup complete.</p>
+                <p class="text-purple-300 font-bold mt-4 font-poppins">&gt; Wishing you endless bugs, books & bad jokes. May your future be bug-free!</p>
+                <button type="button" onclick="handleButtonClick(showBonusMemory)" class="reveal-button mt-6 px-4 py-2 text-base rounded-lg font-orbitron">
+                    [UNLOCKED] View Secret Memory Log 🔓
+                </button>
+            `;
+            REVEAL_CONTENT.appendChild(finalMessageDiv);
+        }
+        
+        // --- STAGE 5 LOGIC ---
+
+        function showBonusMemory() {
+            currentStage = STAGES.BONUS;
+            REVEAL_CONTENT.classList.add('hidden');
+            REVEAL_CONTENT.classList.remove('animate-entry');
+
+            BONUS_CONTENT.classList.remove('hidden', 'opacity-0');
+            BONUS_CONTENT.classList.add('animate-entry');
+
+            BONUS_CONTENT.innerHTML = `
+                <h2 class="text-3xl font-bold mb-6 reveal-text text-center font-orbitron">🔐 SECRET MEMORY LOG v.2025 🔐</h2>
+                <div class="space-y-6">
+
+                    <div class="memory-card" onclick="handleButtonClick(() => {})">
+                        <h3 class="text-xl text-cyan-300 font-bold mb-2 font-poppins">📚 BAPI'S BOOK STACK</h3>
+                        <p class="text-sm font-poppins">Favorite novels detected: *The Name of the Wind*, *Mistborn*, *Project Hail Mary*. Status: Unfinished. Recommendation: Stop reading code, start reading books. New addition: The next book in the Sanderson Cosmere.</p>
+                    </div>
+
+                    <div class="memory-card">
+                        <h3 class="text-xl text-pink-300 font-bold mb-2 font-poppins">🎸 GUITAR CLIP LOG</h3>
+                        <p class="text-sm font-poppins">Last successful riff: A highly distorted rendition of an '80s rock solo. Conclusion: Louder does not mean better, but it is certainly more fun. Keep shredding!</p>
+                        
+                        <button id="guitar-pause-button" onclick="handleButtonClick(toggleGuitarPlayback)" class="mt-3 px-3 py-1 text-sm rounded reveal-button bg-green-500 transition-colors">
+                            ▶️ Play
+                        </button>
+
+                        <p class="text-xs italic text-pink-500 mt-2 font-poppins">Hint: Click the button to toggle the clip.</p>
+                    </div>
+
+                    <div class="memory-card" onclick="handleButtonClick(() => {})">
+                        <h3 class="text-xl text-purple-300 font-bold mb-2 font-poppins">💔 GIRLFRIEND SEARCH LOG</h3>
+                        <p class="text-sm font-mono italic font-poppins">
+                            [2023-08-15] Query: 'Find human partner near me'. Result: Access Denied. Reason: Console error: 'Too much time spent on Vim shortcuts.'<br>
+                            [22024-03-22] Query: 'Find girl who likes coding'. Result: Access Denied. Reason: Error 404: 'Candidate found, but she prefers VS Code.'<br>
+                            [2025-01-01] Query: 'Find anyone'. Result: PROCESSING... STATUS: Still looking! Priority: LOW (Coding takes precedence).
+                        </p>
+                    </div>
+                </div>
+
+                <p class="text-center text-sm mt-8 text-white font-poppins">&gt; [END_OF_LOG] Thank you for playing. Have a great year ahead!</p>
+                
+                <div class="text-center mt-6" id="final-exit-div">
+                    <button type="button" onclick="handleButtonClick(handleCloseRequest)" class="reveal-button px-6 py-3 text-xl rounded-lg font-orbitron" 
+                                        style="background: linear-gradient(45deg, #cc0000, #ff5733); box-shadow: 0 0 15px #ff0000;">
+                        CONTINUE
+                    </button>
+                    <p id="close-message" class="text-xs text-red-300 mt-2 hidden font-poppins">
+                        Please dont close there is something happeing....
+                    </p>
+                </div>
+            `;
+        }
+
+        // --- MODAL & EXIT LOGIC (STAGE 5 BONUS) ---
+
+        /** Shows the modal with the initial 'WARNING' message. */
+        function handleCloseRequest() {
+            const modal = document.getElementById('girlfriend-modal');
+            modal.style.display = 'flex';
+            
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+            }, 10); 
+
+            document.getElementById('gf-profile').classList.add('hidden');
+            document.getElementById('request-view-message').classList.add('hidden');
+            document.getElementById('modal-buttons').classList.remove('hidden');
+
+            document.getElementById('close-message').classList.remove('hidden');
+            
+            playErrorSfx(); 
+        }
+
+        /** Handles the 'Yes, Show Profile' button click inside the modal. */
+        function showGirlfriendProfile() {
+            // FIX: Stop guitar1Player to prevent collision
+            if (guitar1Player && guitar1Player.state === 'started') {
+                guitar1Player.stop();
+                // Update button state visually
+                const pauseButton = document.getElementById('guitar-pause-button');
+                if (pauseButton) {
+                    pauseButton.textContent = '▶️ Play';
+                    pauseButton.classList.remove('bg-red-500');
+                    pauseButton.classList.add('bg-green-500');
+                }
+            }
+
+            playGuitarRiff(); 
+            playGirlfriendMusic(); 
+            loveConfetti(); // Full-screen heart confetti burst
+            document.getElementById('modal-buttons').classList.add('hidden');
+            document.getElementById('request-view-message').classList.add('hidden');
+            
+            const profile = document.getElementById('gf-profile');
+            profile.classList.remove('hidden');
+            profile.classList.add('animate-entry');
+        }
+
+        /** Handles the 'No, Exit' button click inside the modal (forces user to view profile). */
+        function requestToView() {
+            playErrorSfx(); 
+            document.getElementById('modal-buttons').classList.add('hidden');
+            document.getElementById('request-view-message').classList.remove('hidden');
+        }
+
+        /** New function to handle closing the profile modal, stopping music, and showing final exit option. */
+        function closeProfileAndExit() {
+            closeModal(true); // Stop music and close modal
+
+            // Update the final-exit-div with a proper EXIT button
+            const finalExitDiv = document.getElementById('final-exit-div');
+            if (finalExitDiv) {
+                finalExitDiv.innerHTML = `
+                    <p class="text-xl text-green-400 font-poppins">PROTOCOL TERMINATED. THANK YOU.
+                    <br>Click 'Close Window' to terminate the session.</p>
+                    <button onclick="window.close()" class="reveal-button mt-4 px-6 py-3 text-xl rounded-lg font-orbitron" 
+                            style="background: linear-gradient(45deg, #cc0000, #ff5733); box-shadow: 0 0 15px #ff0000;">
+                        CLOSE WINDOW
+                    </button>
+                `;
+            }
+        }
+
+        /** Closes the modal and re-enables the main website. */
+        function closeModal(viewedProfile) {
+            const modal = document.getElementById('girlfriend-modal');
+            modal.classList.add('opacity-0');
+
+            // FIX: Pause the girlfriend music when the profile modal closes
+            if (gfMusicPlayer && gfMusicPlayer.state === 'started') {
+                gfMusicPlayer.stop(); 
+            }
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300); 
+
+            if (viewedProfile) {
+                document.getElementById('close-message').innerHTML = 'PROTOCOL_EXIT: Girlfriend search success. You may now close.';
+                document.getElementById('close-message').classList.remove('text-red-300', 'hidden');
+                document.getElementById('close-message').classList.add('text-green-300');
+            }
+        }
+
+        // --- INITIALIZATION ---
+        window.TYPING_SPEED_MS = TYPING_SPEED_MS; // Expose speed for kill switch
+        
+        const audioInitMessage = document.createElement('p');
+        audioInitMessage.innerHTML = '&gt; CLICK anywhere to authorize system access and initialize>';
+        audioInitMessage.classList.add('neon-glow-green', 'neon-glow-yellow');
+        TERMINAL_OUTPUT.appendChild(audioInitMessage);
+
+        document.addEventListener('click', function startApp(event) {
+            // Check if the click was not on a button/input that should already be handled
+            if (event.target.tagName !== 'BUTTON' && event.target.tagName !== 'INPUT') {
+                document.removeEventListener('click', startApp); 
+                initAmbientSound();
+                startIntro();
+            }
+        }, { once: true });
+        
+        // Also allow the spacebar to initialize the app
+        document.addEventListener('keydown', function spaceStart(event) {
+            if (event.code === 'Space' || event.key === ' ') {
+                document.removeEventListener('keydown', spaceStart);
+                // Must remove the click listener too, otherwise it triggers when user clicks a button later
+                document.removeEventListener('click', document.querySelector('#terminal-output').parentElement.onclick || (()=> {}), { once: true });
+                initAmbientSound();
+                startIntro();
+                killAnimations(); // Kill animations if started via space
+                event.preventDefault(); 
+            }
+        }, { once: true });
+    </script>
+</body>
+</html>
